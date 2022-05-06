@@ -2,16 +2,16 @@ package mod
 
 import (
 	"fmt"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/shiningrush/fastflow/pkg/entity"
 	"github.com/shiningrush/fastflow/pkg/event"
 	"github.com/shiningrush/fastflow/pkg/log"
 	"github.com/shiningrush/fastflow/pkg/utils"
 	"github.com/shiningrush/goevent"
 	"github.com/spaolacci/murmur3"
-	"strings"
-
-	"sync"
-	"time"
 )
 
 // DefParser
@@ -361,6 +361,7 @@ func (p *DefParser) parseScheduleDagIns(dagIns *entity.DagInstance) error {
 			return err
 		}
 
+		// the init of tasks is not complete, should continue/start it.
 		if len(dag.Tasks) != len(tasks) {
 			var needInitTaskIns []*entity.TaskInstance
 			for i := range dag.Tasks {

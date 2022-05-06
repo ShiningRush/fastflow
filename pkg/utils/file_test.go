@@ -1,8 +1,10 @@
 package utils
 
 import (
-	"github.com/stretchr/testify/assert"
+	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFileDagReader_ReadPathsFromDir(t *testing.T) {
@@ -10,9 +12,9 @@ func TestFileDagReader_ReadPathsFromDir(t *testing.T) {
 	paths, err := file.ReadPathsFromDir("./tests")
 	assert.NoError(t, err)
 	wantPaths := []string{
-		"tests\\sub-tests\\subtest.yaml",
-		"tests\\testdag.yaml",
-		"tests\\testdag2.yml",
+		filepath.Join("tests", "sub-tests", "subtest.yaml"),
+		filepath.Join("tests", "testdag.yaml"),
+		filepath.Join("tests", "testdag2.yml"),
 	}
 	assert.Equal(t, wantPaths, paths)
 }

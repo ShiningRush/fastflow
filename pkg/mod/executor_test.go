@@ -2,12 +2,13 @@ package mod
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/shiningrush/fastflow/pkg/entity"
 	"github.com/shiningrush/fastflow/pkg/entity/run"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
-	"time"
 )
 
 type TestParam struct {
@@ -131,10 +132,10 @@ func TestDefExecutor_initWorkerTask(t *testing.T) {
 			assert.Equal(t, tc.giveTask.Traces[len(tc.giveTask.Traces)-2], entity.TraceInfo{Time: time.Now().Unix(), Message: "test-trace1"})
 			assert.Equal(t, tc.giveTask.Traces[len(tc.giveTask.Traces)-1], entity.TraceInfo{Time: time.Now().Unix(), Message: "test-trace2"})
 		}
-		assert.Equal(t, tc.wantPatchCnt, tc.wantPatchCnt)
+		assert.Equal(t, patchCalledCnt, tc.wantPatchCnt)
 		dl, ok := tc.giveTask.Context.Context().Deadline()
 		assert.True(t, ok)
-		assert.Equal(t, startTime.Add(tc.wantTimeout), dl)
+		assert.True(t,dl.After(startTime.Add(tc.wantTimeout)))
 	}
 }
 
