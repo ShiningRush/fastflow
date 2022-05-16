@@ -20,7 +20,7 @@ type BeforeAction interface {
 	RunBefore(ctx ExecuteContext, params interface{}) error
 }
 
-// BeforeAction run after run action
+// AfterAction run after run action
 type AfterAction interface {
 	RunAfter(ctx ExecuteContext, params interface{}) error
 }

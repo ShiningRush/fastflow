@@ -3,6 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/shiningrush/fastflow"
 	mongoKeeper "github.com/shiningrush/fastflow/keeper/mongo"
 	"github.com/shiningrush/fastflow/pkg/entity"
@@ -10,14 +13,12 @@ import (
 	"github.com/shiningrush/fastflow/pkg/mod"
 	"github.com/shiningrush/fastflow/pkg/utils/data"
 	mongoStore "github.com/shiningrush/fastflow/store/mongo"
-	"log"
-	"time"
 )
 
 type PrintAction struct {
 }
 
-// Name define the unique action identity, it will used by Task
+// Name define the unique action identity, it will be used by Task
 func (a *PrintAction) Name() string {
 	return "PrintAction"
 }
