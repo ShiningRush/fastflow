@@ -4,6 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
 	"github.com/shiningrush/fastflow/pkg/actions"
 	"github.com/shiningrush/fastflow/pkg/entity"
 	"github.com/shiningrush/fastflow/pkg/entity/run"
@@ -13,14 +22,6 @@ import (
 	"github.com/shiningrush/fastflow/pkg/utils/data"
 	"github.com/shiningrush/goevent"
 	"gopkg.in/yaml.v3"
-	"log"
-	"os"
-	"os/signal"
-	"path/filepath"
-	"strings"
-	"sync"
-	"syscall"
-	"time"
 )
 
 var closers []mod.Closer
@@ -52,12 +53,12 @@ type InitialOption struct {
 	// ExecutorTimeout default 15s
 	DagScheduleTimeout time.Duration
 
-	// Read dag define from director
-	// file name must like `dag-id.yaml`
+	// Read dag define from directory
+	// each file will be pared to a dag, so you CAN'T define all dag in one file
 	ReadDagFromDir string
 }
 
-// Start will block until accept system signal, if you dont want block, plz check "Init"
+// Start will block until accept system signal, if you don't want block, plz check "Init"
 func Start(opt *InitialOption, afterInit ...func() error) error {
 	if err := Init(opt); err != nil {
 		return err

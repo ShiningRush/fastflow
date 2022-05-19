@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/shiningrush/fastflow/pkg/entity"
 	"github.com/shiningrush/fastflow/pkg/entity/run"
 	"github.com/shiningrush/fastflow/pkg/event"
 	"github.com/shiningrush/fastflow/pkg/log"
 	"github.com/shiningrush/goevent"
-	"sync"
-	"time"
 )
 
 const (
@@ -45,7 +46,7 @@ func NewDefExecutor(timeout time.Duration, workers int) *DefExecutor {
 		workerQueue:  make(chan *entity.TaskInstance),
 		timeout:      timeout,
 		initQueue:    make(chan *initPayload),
-		closeCh:      make(chan struct{}),
+		closeCh:      make(chan struct{}, 1),
 	}
 }
 
@@ -211,6 +212,9 @@ func (e *DefExecutor) getFromTaskInstance(taskIns *entity.TaskInstance, params i
 func (e *DefExecutor) Close() {
 	e.lock.Lock()
 	defer e.lock.Unlock()
+
+	defer close(e.closeCh)
+	e.closeCh <- struct{}{}
 
 	close(e.initQueue)
 	e.initWg.Wait()

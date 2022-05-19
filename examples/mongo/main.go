@@ -3,6 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"time"
+
 	"github.com/shiningrush/fastflow"
 	mongoKeeper "github.com/shiningrush/fastflow/keeper/mongo"
 	"github.com/shiningrush/fastflow/pkg/entity"
@@ -11,9 +15,6 @@ import (
 	"github.com/shiningrush/fastflow/pkg/mod"
 	"github.com/shiningrush/fastflow/pkg/utils/data"
 	mongoStore "github.com/shiningrush/fastflow/store/mongo"
-	"log"
-	"net/http"
-	"time"
 )
 
 type ActionParam struct {
@@ -109,6 +110,7 @@ func main() {
 	// init keeper
 	keeper := mongoKeeper.NewKeeper(&mongoKeeper.KeeperOption{
 		Key:      "worker-1",
+		// if your mongo does not set user/pwd, you should remove it
 		ConnStr:  "mongodb://root:pwd@127.0.0.1:27017/fastflow?authSource=admin",
 		Database: "mongo-demo",
 		Prefix:   "test",
@@ -119,6 +121,7 @@ func main() {
 
 	// init store
 	st := mongoStore.NewStore(&mongoStore.StoreOption{
+		// if your mongo does not set user/pwd, you should remove it
 		ConnStr:  "mongodb://root:pwd@127.0.0.1:27017/fastflow?authSource=admin",
 		Database: "mongo-demo",
 		Prefix:   "test",
