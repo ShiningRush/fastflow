@@ -283,11 +283,8 @@ func createDagAndInstance() {
 
 	// run some dag instance
 	for i := 0; i < 10; i++ {
-		dagInstance, err := mod.GetCommander().RunDag("test-dag", nil)
+		_, err := mod.GetCommander().RunDag("test-dag", nil)
 		if err != nil {
-			log.Fatal(err)
-		}
-		if err := mod.GetStore().CreateDagIns(dagInstance); err != nil {
 			log.Fatal(err)
 		}
 		time.Sleep(time.Second * 10)
