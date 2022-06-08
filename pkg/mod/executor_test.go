@@ -3,7 +3,6 @@ package mod
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
@@ -15,6 +14,18 @@ import (
 
 type TestParam struct {
 	Field1 string `json:"field1"`
+}
+
+func NewTestParam() interface{} {
+	return &TestParam{}
+}
+
+type TestParamInt struct {
+	Field1 int `json:"field1"`
+}
+
+func NewTestParamInt() interface{} {
+	return &TestParamInt{}
 }
 
 func TestDefExecutor_CancelTaskIns(t *testing.T) {
@@ -142,16 +153,17 @@ func TestDefExecutor_initWorkerTask(t *testing.T) {
 }
 
 func TestDefExecutor_WorkerDo(t *testing.T) {
-	calledRun := false
 	tests := []struct {
-		caseDesc        string
-		giveExecutor    *DefExecutor
-		giveTaskIns     *entity.TaskInstance
-		giveHookErr     error
-		isCancel        bool
-		wantParams      interface{}
-		wantEntryTask   *entity.TaskInstance
-		wantEntryCalled bool
+		caseDesc         string
+		giveExecutor     *DefExecutor
+		giveTaskIns      *entity.TaskInstance
+		giveHookErr      error
+		giveParameterNew func() interface{}
+		isCancel         bool
+		wantParams       interface{}
+		wantEntryTask    *entity.TaskInstance
+		wantEntryCalled  bool
+		wantCalledRun    bool
 	}{
 		{
 			caseDesc:     "normal",
@@ -166,8 +178,10 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 					return nil
 				},
 			},
-			wantParams:      &TestParam{Field1: "test_field"},
-			wantEntryCalled: true,
+			giveParameterNew: NewTestParam,
+			wantParams:       &TestParam{Field1: "test_field"},
+			wantEntryCalled:  true,
+			wantCalledRun:    true,
 			wantEntryTask: &entity.TaskInstance{
 				ActionName: "test",
 				Params: map[string]interface{}{
@@ -183,7 +197,9 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 				ActionName: "noParams",
 				Status:     entity.TaskInstanceStatusInit,
 			},
-			wantEntryCalled: true,
+			giveParameterNew: NewTestParam,
+			wantEntryCalled:  true,
+			wantCalledRun:    true,
 			wantEntryTask: &entity.TaskInstance{
 				ActionName: "noParams",
 				Status:     entity.TaskInstanceStatusSuccess,
@@ -196,7 +212,9 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 				ActionName: "test",
 				Status:     entity.TaskInstanceStatusInit,
 			},
-			wantEntryCalled: true,
+			giveParameterNew: NewTestParam,
+			wantEntryCalled:  true,
+			wantCalledRun:    true,
 			wantEntryTask: &entity.TaskInstance{
 				ActionName: "test",
 				Status:     entity.TaskInstanceStatusSuccess,
@@ -210,7 +228,9 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 				ActionName: "test",
 				Status:     entity.TaskInstanceStatusInit,
 			},
-			wantEntryCalled: true,
+			giveParameterNew: NewTestParam,
+			wantEntryCalled:  true,
+			wantCalledRun:    true,
 			wantEntryTask: &entity.TaskInstance{
 				ActionName: "test",
 				Status:     entity.TaskInstanceStatusSuccess,
@@ -224,7 +244,8 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 				ActionName: "no_such_action",
 				Status:     entity.TaskInstanceStatusInit,
 			},
-			wantEntryCalled: true,
+			giveParameterNew: NewTestParam,
+			wantEntryCalled:  true,
 			wantEntryTask: &entity.TaskInstance{
 				ActionName: "no_such_action",
 				Status:     entity.TaskInstanceStatusFailed,
@@ -239,7 +260,8 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 				ActionName: "no_such_action",
 				Status:     entity.TaskInstanceStatusInit,
 			},
-			wantEntryCalled: true,
+			giveParameterNew: NewTestParam,
+			wantEntryCalled:  true,
 			wantEntryTask: &entity.TaskInstance{
 				ActionName: "no_such_action",
 				Status:     entity.TaskInstanceStatusCanceled,
@@ -252,28 +274,33 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 			giveTaskIns: &entity.TaskInstance{
 				ActionName: "test",
 				Params: map[string]interface{}{
-					"field1": 1,
+					"field1": "qqq",
 				},
 				Status: entity.TaskInstanceStatusInit,
 			},
-			wantEntryCalled: true,
+			giveParameterNew: NewTestParamInt,
+			wantEntryCalled:  true,
 			wantEntryTask: &entity.TaskInstance{
 				ActionName: "test",
 				Params: map[string]interface{}{
-					"field1": 1,
+					"field1": "qqq",
 				},
-				Status: entity.TaskInstanceStatusSuccess,
+				Status: entity.TaskInstanceStatusFailed,
+				Reason: "get task params from task instance failed: 1 error(s) decoding:\n\n" +
+					"* cannot parse 'Field1' as int: strconv.ParseInt: parsing \"qqq\": invalid syntax",
 			},
 		},
 		{
-			caseDesc:     "no status",
-			giveExecutor: &DefExecutor{},
-			giveTaskIns:  &entity.TaskInstance{},
+			caseDesc:         "no status",
+			giveExecutor:     &DefExecutor{},
+			giveTaskIns:      &entity.TaskInstance{},
+			giveParameterNew: NewTestParam,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.caseDesc, func(t *testing.T) {
+			calledRun := false
 			testAct := &run.MockAction{}
 			testAct.On("Name", mock.Anything, mock.Anything).Return("test")
 			testAct.On("Run", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -282,7 +309,7 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 					assert.Equal(t, tc.wantParams, args.Get(1))
 				}
 			}).Return(nil)
-			testAct.On("ParameterNew", mock.Anything, mock.Anything).Return(&TestParam{})
+			testAct.On("ParameterNew", mock.Anything, mock.Anything).Return(tc.giveParameterNew())
 			testAct.On("RunBefore", mock.Anything, mock.Anything).Return(nil)
 			testAct.On("RunAfter", mock.Anything, mock.Anything).Return(nil)
 
@@ -319,7 +346,7 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 				tc.giveExecutor.cancelMap.Store(tc.giveTaskIns.ID, nil)
 			}
 			tc.giveExecutor.workerDo(tc.giveTaskIns)
-			assert.True(t, calledRun)
+			assert.Equal(t, tc.wantCalledRun, calledRun)
 			assert.Equal(t, tc.wantEntryCalled, calledEntry)
 		})
 	}
@@ -491,9 +518,7 @@ func TestDefExecutor_getFromTaskInstance(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			e := &DefExecutor{}
 			tt.wantErr(t, e.getFromTaskInstance(tt.args.taskIns, tt.args.params), fmt.Sprintf("getFromTaskInstance(%v, %v)", tt.args.taskIns, tt.args.params))
-			if !reflect.DeepEqual(tt.args.params, tt.want) {
-				t.Errorf("tt.args.params != tt.want,%+v,%+v", tt.args.params, tt.want)
-			}
+			assert.Equal(t, tt.want, tt.args.params)
 		})
 	}
 }
