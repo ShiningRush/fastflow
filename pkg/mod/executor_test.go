@@ -418,6 +418,74 @@ func TestDefExecutor_getFromTaskInstance(t *testing.T) {
 			},
 			wantErr: assert.NoError,
 		},
+		{
+			name: "float str to int",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Int": "10.1",
+				}},
+				params: &T{},
+			},
+			want:    &T{},
+			wantErr: assert.Error,
+		},
+		{
+			name: "out of range",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Uint8": "454545",
+				}},
+				params: &T{},
+			},
+			want:    &T{},
+			wantErr: assert.Error,
+		},
+		{
+			name: "-1 to uint",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Uint8": "-1",
+				}},
+				params: &T{},
+			},
+			want:    &T{},
+			wantErr: assert.Error,
+		},
+		{
+			name: "1 to bool",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Bool": "1",
+				}},
+				params: &T{},
+			},
+			want: &T{
+				Bool: true,
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "0 to bool",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Bool": "0",
+				}},
+				params: &T{},
+			},
+			want:    &T{},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "str to int",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Bool": "qqq",
+				}},
+				params: &T{},
+			},
+			want:    &T{},
+			wantErr: assert.Error,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
