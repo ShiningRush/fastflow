@@ -3,6 +3,7 @@ module github.com/shiningrush/fastflow
 go 1.14
 
 require (
+	github.com/mitchellh/mapstructure v1.1.2
 	github.com/prometheus/client_golang v1.8.0
 	github.com/shiningrush/goevent v0.1.0
 	github.com/sony/sonyflake v1.0.0

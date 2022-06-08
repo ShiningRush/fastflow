@@ -2,6 +2,8 @@ package mod
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -135,7 +137,7 @@ func TestDefExecutor_initWorkerTask(t *testing.T) {
 		assert.Equal(t, patchCalledCnt, tc.wantPatchCnt)
 		dl, ok := tc.giveTask.Context.Context().Deadline()
 		assert.True(t, ok)
-		assert.True(t,dl.After(startTime.Add(tc.wantTimeout)))
+		assert.True(t, dl.After(startTime.Add(tc.wantTimeout)))
 	}
 }
 
@@ -260,8 +262,7 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 				Params: map[string]interface{}{
 					"field1": 1,
 				},
-				Status: entity.TaskInstanceStatusFailed,
-				Reason: "get task params from task instance failed: json unmarshal: json: cannot unmarshal number into Go struct field TestParam.field1 of type string",
+				Status: entity.TaskInstanceStatusSuccess,
 			},
 		},
 		{
@@ -349,4 +350,82 @@ func TestDefExecutor(t *testing.T) {
 	e.Close()
 	assert.True(t, calledUpdateTask)
 	assert.True(t, calledEntryTaskIns)
+}
+
+func TestDefExecutor_getFromTaskInstance(t *testing.T) {
+	type T struct {
+		Bool   bool
+		Int    int
+		Float  float32
+		String string
+		Int32  int32
+		Uint8  uint8
+	}
+
+	type args struct {
+		taskIns *entity.TaskInstance
+		params  interface{}
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    interface{}
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "string type",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Bool":   "true",
+					"Int":    "10",
+					"Float":  "1.3",
+					"String": "sas",
+					"Int32":  "1",
+					"Uint8":  "4",
+				}},
+				params: &T{},
+			},
+			want: &T{
+				Bool:   true,
+				Int:    10,
+				Float:  1.3,
+				String: "sas",
+				Int32:  1,
+				Uint8:  4,
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "origin type",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Bool":   true,
+					"Int":    10,
+					"Float":  1.3,
+					"String": "sas",
+					"Int32":  1,
+					"Uint8":  4,
+				}},
+				params: &T{},
+			},
+			want: &T{
+				Bool:   true,
+				Int:    10,
+				Float:  1.3,
+				String: "sas",
+				Int32:  1,
+				Uint8:  4,
+			},
+			wantErr: assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &DefExecutor{}
+			tt.wantErr(t, e.getFromTaskInstance(tt.args.taskIns, tt.args.params), fmt.Sprintf("getFromTaskInstance(%v, %v)", tt.args.taskIns, tt.args.params))
+			if !reflect.DeepEqual(tt.args.params, tt.want) {
+				t.Errorf("tt.args.params != tt.want,%+v,%+v", tt.args.params, tt.want)
+			}
+		})
+	}
 }
