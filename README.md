@@ -1,5 +1,6 @@
 # Fastflow——基于golang的轻量级工作流框架
 [![Go Report Card](https://goreportcard.com/badge/github.com/shiningrush/goext)](https://goreportcard.com/report/github.com/shiningrush/fastflow)
+[![codecov](https://codecov.io/gh/ShiningRush/fastflow/branch/main/graph/badge.svg?token=YL8PzEOyD7)](https://codecov.io/gh/ShiningRush/fastflow)
 
 [Fastflow](https://github.com/ShiningRush/fastflow) 是什么？用一句话来定义它：一个 `基于golang协程`、`支持水平扩容`的分布式高性能`工作流框架`。
 它具有以下特点：
