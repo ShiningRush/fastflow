@@ -269,7 +269,7 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 			},
 		},
 		{
-			caseDesc:     "unmarshal failed",
+			caseDesc:     "convert failed",
 			giveExecutor: &DefExecutor{},
 			giveTaskIns: &entity.TaskInstance{
 				ActionName: "test",
