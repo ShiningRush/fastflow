@@ -2,11 +2,11 @@ package mod
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/shiningrush/fastflow/pkg/entity"
 	"github.com/shiningrush/fastflow/pkg/entity/run"
 	"github.com/shiningrush/fastflow/pkg/event"
@@ -196,16 +196,7 @@ func (e *DefExecutor) runAction(taskIns *entity.TaskInstance) error {
 }
 
 func (e *DefExecutor) getFromTaskInstance(taskIns *entity.TaskInstance, params interface{}) error {
-	bs, err := json.Marshal(taskIns.Params)
-	if err != nil {
-		return fmt.Errorf("json marshal failed: %w", err)
-	}
-
-	if err := json.Unmarshal(bs, params); err != nil {
-		return fmt.Errorf("json unmarshal: %w", err)
-	}
-
-	return nil
+	return mapstructure.WeakDecode(taskIns.Params, params)
 }
 
 // Close

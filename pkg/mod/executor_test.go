@@ -2,6 +2,7 @@ package mod
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -13,6 +14,18 @@ import (
 
 type TestParam struct {
 	Field1 string `json:"field1"`
+}
+
+func NewTestParam() interface{} {
+	return &TestParam{}
+}
+
+type TestParamInt struct {
+	Field1 int `json:"field1"`
+}
+
+func NewTestParamInt() interface{} {
+	return &TestParamInt{}
 }
 
 func TestDefExecutor_CancelTaskIns(t *testing.T) {
@@ -135,21 +148,22 @@ func TestDefExecutor_initWorkerTask(t *testing.T) {
 		assert.Equal(t, patchCalledCnt, tc.wantPatchCnt)
 		dl, ok := tc.giveTask.Context.Context().Deadline()
 		assert.True(t, ok)
-		assert.True(t,dl.After(startTime.Add(tc.wantTimeout)))
+		assert.True(t, dl.After(startTime.Add(tc.wantTimeout)))
 	}
 }
 
 func TestDefExecutor_WorkerDo(t *testing.T) {
-	calledRun := false
 	tests := []struct {
-		caseDesc        string
-		giveExecutor    *DefExecutor
-		giveTaskIns     *entity.TaskInstance
-		giveHookErr     error
-		isCancel        bool
-		wantParams      interface{}
-		wantEntryTask   *entity.TaskInstance
-		wantEntryCalled bool
+		caseDesc         string
+		giveExecutor     *DefExecutor
+		giveTaskIns      *entity.TaskInstance
+		giveHookErr      error
+		giveParameterNew func() interface{}
+		isCancel         bool
+		wantParams       interface{}
+		wantEntryTask    *entity.TaskInstance
+		wantEntryCalled  bool
+		wantCalledRun    bool
 	}{
 		{
 			caseDesc:     "normal",
@@ -164,8 +178,10 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 					return nil
 				},
 			},
-			wantParams:      &TestParam{Field1: "test_field"},
-			wantEntryCalled: true,
+			giveParameterNew: NewTestParam,
+			wantParams:       &TestParam{Field1: "test_field"},
+			wantEntryCalled:  true,
+			wantCalledRun:    true,
 			wantEntryTask: &entity.TaskInstance{
 				ActionName: "test",
 				Params: map[string]interface{}{
@@ -181,7 +197,9 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 				ActionName: "noParams",
 				Status:     entity.TaskInstanceStatusInit,
 			},
-			wantEntryCalled: true,
+			giveParameterNew: NewTestParam,
+			wantEntryCalled:  true,
+			wantCalledRun:    true,
 			wantEntryTask: &entity.TaskInstance{
 				ActionName: "noParams",
 				Status:     entity.TaskInstanceStatusSuccess,
@@ -194,7 +212,9 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 				ActionName: "test",
 				Status:     entity.TaskInstanceStatusInit,
 			},
-			wantEntryCalled: true,
+			giveParameterNew: NewTestParam,
+			wantEntryCalled:  true,
+			wantCalledRun:    true,
 			wantEntryTask: &entity.TaskInstance{
 				ActionName: "test",
 				Status:     entity.TaskInstanceStatusSuccess,
@@ -208,7 +228,9 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 				ActionName: "test",
 				Status:     entity.TaskInstanceStatusInit,
 			},
-			wantEntryCalled: true,
+			giveParameterNew: NewTestParam,
+			wantEntryCalled:  true,
+			wantCalledRun:    true,
 			wantEntryTask: &entity.TaskInstance{
 				ActionName: "test",
 				Status:     entity.TaskInstanceStatusSuccess,
@@ -222,7 +244,8 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 				ActionName: "no_such_action",
 				Status:     entity.TaskInstanceStatusInit,
 			},
-			wantEntryCalled: true,
+			giveParameterNew: NewTestParam,
+			wantEntryCalled:  true,
 			wantEntryTask: &entity.TaskInstance{
 				ActionName: "no_such_action",
 				Status:     entity.TaskInstanceStatusFailed,
@@ -237,7 +260,8 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 				ActionName: "no_such_action",
 				Status:     entity.TaskInstanceStatusInit,
 			},
-			wantEntryCalled: true,
+			giveParameterNew: NewTestParam,
+			wantEntryCalled:  true,
 			wantEntryTask: &entity.TaskInstance{
 				ActionName: "no_such_action",
 				Status:     entity.TaskInstanceStatusCanceled,
@@ -245,34 +269,38 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 			},
 		},
 		{
-			caseDesc:     "unmarshal failed",
+			caseDesc:     "convert failed",
 			giveExecutor: &DefExecutor{},
 			giveTaskIns: &entity.TaskInstance{
 				ActionName: "test",
 				Params: map[string]interface{}{
-					"field1": 1,
+					"field1": "qqq",
 				},
 				Status: entity.TaskInstanceStatusInit,
 			},
-			wantEntryCalled: true,
+			giveParameterNew: NewTestParamInt,
+			wantEntryCalled:  true,
 			wantEntryTask: &entity.TaskInstance{
 				ActionName: "test",
 				Params: map[string]interface{}{
-					"field1": 1,
+					"field1": "qqq",
 				},
 				Status: entity.TaskInstanceStatusFailed,
-				Reason: "get task params from task instance failed: json unmarshal: json: cannot unmarshal number into Go struct field TestParam.field1 of type string",
+				Reason: "get task params from task instance failed: 1 error(s) decoding:\n\n" +
+					"* cannot parse 'Field1' as int: strconv.ParseInt: parsing \"qqq\": invalid syntax",
 			},
 		},
 		{
-			caseDesc:     "no status",
-			giveExecutor: &DefExecutor{},
-			giveTaskIns:  &entity.TaskInstance{},
+			caseDesc:         "no status",
+			giveExecutor:     &DefExecutor{},
+			giveTaskIns:      &entity.TaskInstance{},
+			giveParameterNew: NewTestParam,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.caseDesc, func(t *testing.T) {
+			calledRun := false
 			testAct := &run.MockAction{}
 			testAct.On("Name", mock.Anything, mock.Anything).Return("test")
 			testAct.On("Run", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
@@ -281,7 +309,7 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 					assert.Equal(t, tc.wantParams, args.Get(1))
 				}
 			}).Return(nil)
-			testAct.On("ParameterNew", mock.Anything, mock.Anything).Return(&TestParam{})
+			testAct.On("ParameterNew", mock.Anything, mock.Anything).Return(tc.giveParameterNew())
 			testAct.On("RunBefore", mock.Anything, mock.Anything).Return(nil)
 			testAct.On("RunAfter", mock.Anything, mock.Anything).Return(nil)
 
@@ -318,7 +346,7 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 				tc.giveExecutor.cancelMap.Store(tc.giveTaskIns.ID, nil)
 			}
 			tc.giveExecutor.workerDo(tc.giveTaskIns)
-			assert.True(t, calledRun)
+			assert.Equal(t, tc.wantCalledRun, calledRun)
 			assert.Equal(t, tc.wantEntryCalled, calledEntry)
 		})
 	}
@@ -349,4 +377,148 @@ func TestDefExecutor(t *testing.T) {
 	e.Close()
 	assert.True(t, calledUpdateTask)
 	assert.True(t, calledEntryTaskIns)
+}
+
+func TestDefExecutor_getFromTaskInstance(t *testing.T) {
+	type T struct {
+		Bool   bool
+		Int    int
+		Float  float32
+		String string
+		Int32  int32
+		Uint8  uint8
+	}
+
+	type args struct {
+		taskIns *entity.TaskInstance
+		params  interface{}
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    interface{}
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "string type",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Bool":   "true",
+					"Int":    "10",
+					"Float":  "1.3",
+					"String": "sas",
+					"Int32":  "1",
+					"Uint8":  "4",
+				}},
+				params: &T{},
+			},
+			want: &T{
+				Bool:   true,
+				Int:    10,
+				Float:  1.3,
+				String: "sas",
+				Int32:  1,
+				Uint8:  4,
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "origin type",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Bool":   true,
+					"Int":    10,
+					"Float":  1.3,
+					"String": "sas",
+					"Int32":  1,
+					"Uint8":  4,
+				}},
+				params: &T{},
+			},
+			want: &T{
+				Bool:   true,
+				Int:    10,
+				Float:  1.3,
+				String: "sas",
+				Int32:  1,
+				Uint8:  4,
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "float str to int",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Int": "10.1",
+				}},
+				params: &T{},
+			},
+			want:    &T{},
+			wantErr: assert.Error,
+		},
+		{
+			name: "out of range",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Uint8": "454545",
+				}},
+				params: &T{},
+			},
+			want:    &T{},
+			wantErr: assert.Error,
+		},
+		{
+			name: "-1 to uint",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Uint8": "-1",
+				}},
+				params: &T{},
+			},
+			want:    &T{},
+			wantErr: assert.Error,
+		},
+		{
+			name: "1 to bool",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Bool": "1",
+				}},
+				params: &T{},
+			},
+			want: &T{
+				Bool: true,
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "0 to bool",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Bool": "0",
+				}},
+				params: &T{},
+			},
+			want:    &T{},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "str to int",
+			args: args{
+				taskIns: &entity.TaskInstance{Params: map[string]interface{}{
+					"Bool": "qqq",
+				}},
+				params: &T{},
+			},
+			want:    &T{},
+			wantErr: assert.Error,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &DefExecutor{}
+			tt.wantErr(t, e.getFromTaskInstance(tt.args.taskIns, tt.args.params), fmt.Sprintf("getFromTaskInstance(%v, %v)", tt.args.taskIns, tt.args.params))
+			assert.Equal(t, tt.want, tt.args.params)
+		})
+	}
 }
