@@ -2,6 +2,8 @@ package run
 
 import (
 	"context"
+	"fmt"
+
 	"github.com/shiningrush/fastflow/pkg/utils"
 )
 
@@ -30,6 +32,7 @@ type ExecuteContext interface {
 	WithValue(key, value interface{})
 	ShareData() ShareDataOperator
 	Trace(msg string, opt ...TraceOp)
+	Tracef(msg string, a ...interface{})
 	GetVar(varName string) (string, bool)
 	IterateVars(iterateFunc utils.KeyValueIterateFunc)
 }
@@ -69,6 +72,32 @@ func (e *DefExecuteContext) ShareData() ShareDataOperator {
 // Trace
 func (e *DefExecuteContext) Trace(msg string, opt ...TraceOp) {
 	e.trace(msg, opt...)
+}
+
+// Tracef
+func (e *DefExecuteContext) Tracef(msg string, a ...interface{}) {
+	args, ops := splitArgsAndOpt(a...)
+	e.trace(fmt.Sprintf(msg, args...), ops...)
+}
+
+func splitArgsAndOpt(a ...interface{}) ([]interface{}, []TraceOp) {
+	optStartIndex := len(a)
+	for i := len(a) - 1; i >= 0; i -= 1 {
+		if _, ok := a[i].(TraceOp); !ok {
+			optStartIndex = i + 1
+			break
+		}
+		if i == 0 {
+			optStartIndex = 0
+		}
+	}
+
+	var traceOps []TraceOp
+	for i := optStartIndex; i < len(a); i++ {
+		traceOps = append(traceOps, a[i].(TraceOp))
+	}
+
+	return a[:optStartIndex], traceOps
 }
 
 // GetVar used to get key from ShareData
