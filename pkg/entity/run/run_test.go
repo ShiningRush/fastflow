@@ -14,7 +14,7 @@ func TestDefExecuteContext_Tracef(t *testing.T) {
 		wantLogs  []interface{}
 	}{
 		{
-			name: "",
+			name: "simple",
 			operation: func(e *DefExecuteContext) {
 				e.Tracef("aaa")
 				e.Tracef("bbb")
@@ -23,7 +23,7 @@ func TestDefExecuteContext_Tracef(t *testing.T) {
 			wantLogs: []interface{}{"aaa", "bbb", "ccc"},
 		},
 		{
-			name: "",
+			name: "format",
 			operation: func(e *DefExecuteContext) {
 				e.Tracef("int:%d", 1)
 				e.Tracef("str:%s", "aa")
@@ -32,14 +32,14 @@ func TestDefExecuteContext_Tracef(t *testing.T) {
 			wantLogs: []interface{}{"int:1", "str:aa", "+v:{A:1}"},
 		},
 		{
-			name: "",
+			name: "format with opt",
 			operation: func(e *DefExecuteContext) {
 				e.Tracef("str:%s", "aa", "ss", TraceOpPersistAfterAction)
 			},
 			wantLogs: []interface{}{"str:aa%!(EXTRA string=ss)", TraceOpPersistAfterAction},
 		},
 		{
-			name: "",
+			name: "multi opt",
 			operation: func(e *DefExecuteContext) {
 				e.Tracef("str:%s", TraceOpPersistAfterAction, TraceOpPersistAfterAction, TraceOpPersistAfterAction)
 			},
@@ -48,7 +48,7 @@ func TestDefExecuteContext_Tracef(t *testing.T) {
 			},
 		},
 		{
-			name: "",
+			name: "not match format",
 			operation: func(e *DefExecuteContext) {
 				e.Tracef("int:%d", 1, TraceOpPersistAfterAction)
 				e.Trace("cc", TraceOpPersistAfterAction)
