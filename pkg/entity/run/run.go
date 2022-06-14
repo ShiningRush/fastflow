@@ -88,6 +88,7 @@ func (e *DefExecuteContext) Tracef(msg string, a ...interface{}) {
 	e.trace(fmt.Sprintf(msg, args...), ops...)
 }
 
+// splitArgsAndOpt split args and opt, opt must be placed at the end of args
 func splitArgsAndOpt(a ...interface{}) ([]interface{}, []TraceOp) {
 	optStartIndex := len(a)
 	for i := len(a) - 1; i >= 0; i -= 1 {
