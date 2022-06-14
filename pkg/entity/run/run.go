@@ -32,7 +32,14 @@ type ExecuteContext interface {
 	// however it is base on memory, it is possible to lose changes such as application crash
 	WithValue(key, value interface{})
 	ShareData() ShareDataOperator
+	// Trace print msg to the TaskInstance.Traces.
 	Trace(msg string, opt ...TraceOp)
+	// Tracef print msg to the TaskInstance.Traces.
+	// Arguments are handled in the manner of fmt.Printf.
+	// Opt can only be placed at the end of args.
+	// Tracef("{format_str}",{format_val},{opts})
+	// e.g. Tracef("%d", 1, TraceOpPersistAfterAction)
+	// wrong case: Tracef("%d", TraceOpPersistAfterAction, 1)
 	Tracef(msg string, a ...interface{})
 	GetVar(varName string) (string, bool)
 	IterateVars(iterateFunc utils.KeyValueIterateFunc)
