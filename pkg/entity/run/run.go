@@ -77,12 +77,17 @@ func (e *DefExecuteContext) ShareData() ShareDataOperator {
 	return e.op
 }
 
-// Trace
+// Trace print msg to the TaskInstance.Traces.
 func (e *DefExecuteContext) Trace(msg string, opt ...TraceOp) {
 	e.trace(msg, opt...)
 }
 
-// Tracef
+// Tracef print msg to the TaskInstance.Traces.
+// Arguments are handled in the manner of fmt.Printf.
+// Opt can only be placed at the end of args.
+// Tracef("{format_str}",{format_val},{opts})
+// e.g. Tracef("%d", 1, TraceOpPersistAfterAction)
+// wrong case: Tracef("%d", TraceOpPersistAfterAction, 1)
 func (e *DefExecuteContext) Tracef(msg string, a ...interface{}) {
 	args, ops := splitArgsAndOpt(a...)
 	e.trace(fmt.Sprintf(msg, args...), ops...)
