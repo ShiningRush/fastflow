@@ -76,6 +76,7 @@ func TestDefExecutor_CancelTaskIns(t *testing.T) {
 
 func TestDefExecutor_initWorkerTask(t *testing.T) {
 	tests := []struct {
+		name             string
 		giveExecutor     *DefExecutor
 		giveDagIns       *entity.DagInstance
 		giveTask         *entity.TaskInstance
@@ -85,6 +86,7 @@ func TestDefExecutor_initWorkerTask(t *testing.T) {
 		wantPatchCnt     int
 	}{
 		{
+			name: "sync trace",
 			giveExecutor: &DefExecutor{
 				workerQueue: make(chan *entity.TaskInstance, 1),
 				timeout:     time.Second,
@@ -97,16 +99,28 @@ func TestDefExecutor_initWorkerTask(t *testing.T) {
 			wantTimeout: time.Second,
 			wantPatchTaskIns: []*entity.TaskInstance{
 				{BaseInfo: entity.BaseInfo{ID: "test-id"}, Traces: []entity.TraceInfo{
+					{Time: time.Now().Unix(), Message: "test-tracef-1"},
+				}},
+				{BaseInfo: entity.BaseInfo{ID: "test-id"}, Traces: []entity.TraceInfo{
+					{Time: time.Now().Unix(), Message: "test-tracef-1"},
+					{Time: time.Now().Unix(), Message: "test-tracef-2"},
+				}},
+				{BaseInfo: entity.BaseInfo{ID: "test-id"}, Traces: []entity.TraceInfo{
+					{Time: time.Now().Unix(), Message: "test-tracef-1"},
+					{Time: time.Now().Unix(), Message: "test-tracef-2"},
 					{Time: time.Now().Unix(), Message: "test-trace1"},
 				}},
 				{BaseInfo: entity.BaseInfo{ID: "test-id"}, Traces: []entity.TraceInfo{
+					{Time: time.Now().Unix(), Message: "test-tracef-1"},
+					{Time: time.Now().Unix(), Message: "test-tracef-2"},
 					{Time: time.Now().Unix(), Message: "test-trace1"},
 					{Time: time.Now().Unix(), Message: "test-trace2"},
 				}},
 			},
-			wantPatchCnt: 2,
+			wantPatchCnt: 4,
 		},
 		{
+			name:         "after action trace",
 			giveTraceOpt: run.TraceOpPersistAfterAction,
 			giveExecutor: &DefExecutor{
 				workerQueue: make(chan *entity.TaskInstance, 1),
@@ -124,31 +138,37 @@ func TestDefExecutor_initWorkerTask(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		patchCalledCnt := 0
-		mStore := &MockStore{}
-		mStore.On("PatchTaskIns", mock.Anything).Run(func(args mock.Arguments) {
-			assert.Equal(t, tc.wantPatchTaskIns[patchCalledCnt], args.Get(0))
-			patchCalledCnt++
-		}).Return(nil)
-		SetStore(mStore)
+		t.Run(tc.name, func(t *testing.T) {
+			patchCalledCnt := 0
+			mStore := &MockStore{}
+			mStore.On("PatchTaskIns", mock.Anything).Run(func(args mock.Arguments) {
+				assert.Equal(t, tc.wantPatchTaskIns[patchCalledCnt], args.Get(0))
+				patchCalledCnt++
+			}).Return(nil)
+			SetStore(mStore)
 
-		startTime := time.Now()
-		tc.giveExecutor.initWorkerTask(tc.giveDagIns, tc.giveTask)
-		_, ok := tc.giveExecutor.cancelMap.Load(tc.giveTask.ID)
-		assert.True(t, ok)
-		assert.Equal(t, tc.giveDagIns.ShareData, tc.giveTask.Context.ShareData())
+			startTime := time.Now()
+			tc.giveExecutor.initWorkerTask(tc.giveDagIns, tc.giveTask)
+			_, ok := tc.giveExecutor.cancelMap.Load(tc.giveTask.ID)
+			assert.True(t, ok)
+			assert.Equal(t, tc.giveDagIns.ShareData, tc.giveTask.Context.ShareData())
 
-		// check trace infos
-		tc.giveTask.Context.Trace("test-trace1", tc.giveTraceOpt)
-		tc.giveTask.Context.Trace("test-trace2", tc.giveTraceOpt)
-		if tc.giveTraceOpt == nil {
-			assert.Equal(t, tc.giveTask.Traces[len(tc.giveTask.Traces)-2], entity.TraceInfo{Time: time.Now().Unix(), Message: "test-trace1"})
-			assert.Equal(t, tc.giveTask.Traces[len(tc.giveTask.Traces)-1], entity.TraceInfo{Time: time.Now().Unix(), Message: "test-trace2"})
-		}
-		assert.Equal(t, patchCalledCnt, tc.wantPatchCnt)
-		dl, ok := tc.giveTask.Context.Context().Deadline()
-		assert.True(t, ok)
-		assert.True(t, dl.After(startTime.Add(tc.wantTimeout)))
+			// check trace infos
+			tc.giveTask.Context.Tracef("test-tracef-%d", 1, tc.giveTraceOpt)
+			tc.giveTask.Context.Tracef("test-tracef-%s", "2", tc.giveTraceOpt)
+			tc.giveTask.Context.Trace("test-trace1", tc.giveTraceOpt)
+			tc.giveTask.Context.Trace("test-trace2", tc.giveTraceOpt)
+			if tc.giveTraceOpt == nil {
+				assert.Equal(t, tc.giveTask.Traces[len(tc.giveTask.Traces)-4], entity.TraceInfo{Time: time.Now().Unix(), Message: "test-tracef-1"})
+				assert.Equal(t, tc.giveTask.Traces[len(tc.giveTask.Traces)-3], entity.TraceInfo{Time: time.Now().Unix(), Message: "test-tracef-2"})
+				assert.Equal(t, tc.giveTask.Traces[len(tc.giveTask.Traces)-2], entity.TraceInfo{Time: time.Now().Unix(), Message: "test-trace1"})
+				assert.Equal(t, tc.giveTask.Traces[len(tc.giveTask.Traces)-1], entity.TraceInfo{Time: time.Now().Unix(), Message: "test-trace2"})
+			}
+			assert.Equal(t, patchCalledCnt, tc.wantPatchCnt)
+			dl, ok := tc.giveTask.Context.Context().Deadline()
+			assert.True(t, ok)
+			assert.True(t, dl.After(startTime.Add(tc.wantTimeout)))
+		})
 	}
 }
 
