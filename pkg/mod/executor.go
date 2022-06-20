@@ -3,8 +3,12 @@ package mod
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/shiningrush/fastflow/pkg/render"
+	"github.com/shiningrush/fastflow/pkg/utils/value"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/shiningrush/fastflow/pkg/entity"
@@ -29,6 +33,8 @@ type DefExecutor struct {
 	timeout      time.Duration
 	initQueue    chan *initPayload
 
+	paramRender render.Render
+
 	closeCh chan struct{}
 	lock    sync.RWMutex
 }
@@ -47,6 +53,9 @@ func NewDefExecutor(timeout time.Duration, workers int) *DefExecutor {
 		timeout:      timeout,
 		initQueue:    make(chan *initPayload),
 		closeCh:      make(chan struct{}, 1),
+		paramRender: render.NewTplRender(
+			render.NewCachedTplProvider(1000,
+				render.NewParseTplProvider(render.WithMissKeyStrategy(render.MissKeyStrategyError)))),
 	}
 }
 
@@ -105,7 +114,7 @@ func (e *DefExecutor) initWorkerTask(dagIns *entity.DagInstance, taskIns *entity
 		run.NewDefExecuteContext(c, dagIns.ShareData, taskIns.Trace, dagIns.VarsGetter(), dagIns.VarsIterator()),
 		func(instance *entity.TaskInstance) error {
 			return GetStore().PatchTaskIns(instance)
-		})
+		}, dagIns)
 	e.cancelMap.Store(taskIns.ID, cancel)
 	e.workerQueue <- taskIns
 }
@@ -196,7 +205,56 @@ func (e *DefExecutor) runAction(taskIns *entity.TaskInstance) error {
 }
 
 func (e *DefExecutor) getFromTaskInstance(taskIns *entity.TaskInstance, params interface{}) error {
-	return mapstructure.WeakDecode(taskIns.Params, params)
+	err := e.renderParams(taskIns)
+	if err != nil {
+		return fmt.Errorf("renderParams failed: %w", err)
+	}
+
+	return weakDecode(taskIns.Params, params)
+}
+
+func weakDecode(input interface{}, output interface{}) error {
+	config := &mapstructure.DecoderConfig{
+		WeaklyTypedInput: true,
+		Metadata:         nil,
+		Result:           output,
+		TagName:          "json", // Find target field using json tag
+	}
+
+	decoder, err := mapstructure.NewDecoder(config)
+	if err != nil {
+		return err
+	}
+
+	return decoder.Decode(input)
+}
+
+func (e *DefExecutor) renderParams(taskIns *entity.TaskInstance) error {
+	data := map[string]interface{}{}
+
+	dagInstance := taskIns.RelatedDagInstance
+	if dagInstance != nil {
+		data["vars"] = dagInstance.Vars
+		if dagInstance.ShareData != nil {
+			data["shareData"] = dagInstance.ShareData.Dict
+		}
+	}
+
+	err := value.MapValue(taskIns.Params).WalkString(func(m value.MapValue, k string, v string, extra value.Extra) error {
+		if strings.Contains(v, "{{") && strings.Contains(v, "}}") {
+			result, err := e.paramRender.Render(v, data)
+			if err != nil {
+				return err
+			}
+			m[k] = result
+		}
+		return nil
+	})
+	if err != nil {
+		log.Errorf("WalkString failed: %v", err)
+		return err
+	}
+	return nil
 }
 
 // Close

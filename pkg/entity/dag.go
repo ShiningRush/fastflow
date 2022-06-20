@@ -3,10 +3,12 @@ package entity
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/shiningrush/fastflow/pkg/log"
-	"github.com/shiningrush/fastflow/pkg/utils"
 	"strings"
 	"sync"
+
+	"github.com/shiningrush/fastflow/pkg/log"
+	"github.com/shiningrush/fastflow/pkg/utils"
+	"github.com/shiningrush/fastflow/pkg/utils/value"
 )
 
 // NewDag new a dag
@@ -268,22 +270,14 @@ func (dagIns *DagInstance) CanModifyStatus() bool {
 
 // Render variables
 func (vars DagInstanceVars) Render(p map[string]interface{}) (map[string]interface{}, error) {
-	for varKey, varValue := range vars {
-		for k := range p {
-			if s, ok := p[k].(string); ok {
-				p[k] = strings.ReplaceAll(s, fmt.Sprintf("{{%s}}", varKey), varValue.Value)
-			}
-			if m, ok := p[k].(map[string]interface{}); ok {
-				renderMap, err := vars.Render(m)
-				if err != nil {
-					return nil, err
-				}
-				p[k] = renderMap
-			}
+	err := value.MapValue(p).WalkString(func(m value.MapValue, k string, s string, e value.Extra) error {
+		for varKey, varValue := range vars {
+			s = strings.ReplaceAll(s, fmt.Sprintf("{{%s}}", varKey), varValue.Value)
 		}
-	}
-
-	return p, nil
+		m[k] = s
+		return nil
+	})
+	return p, err
 }
 
 // Command
