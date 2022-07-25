@@ -48,3 +48,18 @@ func (mr *MockTplProviderMockRecorder) GetTpl(tplText interface{}) *gomock.Call 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTpl", reflect.TypeOf((*MockTplProvider)(nil).GetTpl), tplText)
 }
+
+// ParseTpl mocks base method.
+func (m *MockTplProvider) ParseTpl(tplText string) (*template.Template, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParseTpl", tplText)
+	ret0, _ := ret[0].(*template.Template)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParseTpl indicates an expected call of ParseTpl.
+func (mr *MockTplProviderMockRecorder) ParseTpl(tplText interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParseTpl", reflect.TypeOf((*MockTplProvider)(nil).ParseTpl), tplText)
+}

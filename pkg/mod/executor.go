@@ -54,8 +54,7 @@ func NewDefExecutor(timeout time.Duration, workers int) *DefExecutor {
 		initQueue:    make(chan *initPayload),
 		closeCh:      make(chan struct{}, 1),
 		paramRender: render.NewTplRender(
-			render.NewCachedTplProvider(1000,
-				render.NewParseTplProvider(render.WithMissKeyStrategy(render.MissKeyStrategyError)))),
+			render.NewCachedTplProvider(1000)),
 	}
 }
 
@@ -240,13 +239,13 @@ func (e *DefExecutor) renderParams(taskIns *entity.TaskInstance) error {
 		}
 	}
 
-	err := value.MapValue(taskIns.Params).WalkString(func(m value.MapValue, k string, v string, extra value.Extra) error {
+	err := value.MapValue(taskIns.Params).WalkString(func(setter value.StringSetter, v string, extra value.Extra) error {
 		if strings.Contains(v, "{{") && strings.Contains(v, "}}") {
 			result, err := e.paramRender.Render(v, data)
 			if err != nil {
 				return err
 			}
-			m[k] = result
+			setter(result)
 		}
 		return nil
 	})

@@ -12,44 +12,18 @@ type TplProvider interface {
 	GetTpl(tplText string) (*template.Template, error)
 }
 
-var _ TplProvider = &ParseTplProvider{}
-
-type ParseTplProvider struct {
-	options *TplOptions
-}
-
-func NewParseTplProvider(opts ...TplOption) *ParseTplProvider {
-	options := NewOptions(opts...)
-	return &ParseTplProvider{
-		options: options,
-	}
-}
-
-func (p *ParseTplProvider) GetTpl(tplText string) (*template.Template, error) {
-	tpl, err := template.New(tplText).Parse(tplText)
-	if err != nil {
-		return nil, err
-	}
-	if p.options.MissKeyStrategy.Effective() {
-		tpl.Option(p.options.MissKeyStrategy.OptionString())
-	}
-	return tpl, err
-}
-
 var _ TplProvider = &CachedTplProvider{}
 
 type CachedTplProvider struct {
-	parseTplProvider TplProvider
-	cache            *lru.Cache
-	rwMutex          sync.RWMutex
+	cache   *lru.Cache
+	rwMutex sync.RWMutex
 }
 
-func NewCachedTplProvider(maxSize int, parseTplProvider TplProvider) *CachedTplProvider {
+func NewCachedTplProvider(maxSize int) *CachedTplProvider {
 	cache := lru.New(maxSize)
 	return &CachedTplProvider{
-		parseTplProvider: parseTplProvider,
-		cache:            cache,
-		rwMutex:          sync.RWMutex{},
+		cache:   cache,
+		rwMutex: sync.RWMutex{},
 	}
 }
 
@@ -74,10 +48,19 @@ func (c *CachedTplProvider) GetTpl(tplText string) (*template.Template, error) {
 	if ok {
 		return tpl, nil
 	}
-	tpl, err := c.parseTplProvider.GetTpl(tplText)
+	tpl, err := c.ParseTpl(tplText)
 	if err != nil {
 		return nil, err
 	}
 	c.cacheSetTpl(tplText, tpl)
+	return tpl, err
+}
+
+func (c *CachedTplProvider) ParseTpl(tplText string) (*template.Template, error) {
+	tpl, err := template.New(tplText).Parse(tplText)
+	if err != nil {
+		return nil, err
+	}
+	tpl.Option("missingkey=error")
 	return tpl, err
 }

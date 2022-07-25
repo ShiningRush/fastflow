@@ -270,11 +270,11 @@ func (dagIns *DagInstance) CanModifyStatus() bool {
 
 // Render variables
 func (vars DagInstanceVars) Render(p map[string]interface{}) (map[string]interface{}, error) {
-	err := value.MapValue(p).WalkString(func(m value.MapValue, k string, s string, e value.Extra) error {
+	err := value.MapValue(p).WalkString(func(setter value.StringSetter, s string, e value.Extra) error {
 		for varKey, varValue := range vars {
 			s = strings.ReplaceAll(s, fmt.Sprintf("{{%s}}", varKey), varValue.Value)
 		}
-		m[k] = s
+		setter(s)
 		return nil
 	})
 	return p, err
