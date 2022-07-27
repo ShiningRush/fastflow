@@ -237,8 +237,7 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 		{
 			caseDesc: "param render",
 			giveExecutor: &DefExecutor{
-				paramRender: render.NewTplRender(
-					render.NewCachedTplProvider(1000)),
+				paramRender: render.NewTplRender(),
 			},
 			giveTaskIns: &entity.TaskInstance{
 				ActionName: "test",
@@ -299,8 +298,7 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 		{
 			caseDesc: "param render failed",
 			giveExecutor: &DefExecutor{
-				paramRender: render.NewTplRender(
-					render.NewCachedTplProvider(1000)),
+				paramRender: render.NewTplRender(),
 			},
 			giveTaskIns: &entity.TaskInstance{
 				ActionName: "test",
@@ -665,11 +663,10 @@ func TestDefExecutor_getFromTaskInstance(t *testing.T) {
 }
 
 func TestDefExecutor_renderParams(t *testing.T) {
-	paramRender := render.NewTplRender(
-		render.NewCachedTplProvider(1000))
+	paramRender := render.NewTplRender()
 
 	type fields struct {
-		paramRender render.Render
+		paramRender *render.TplRender
 	}
 	type args struct {
 		taskIns *entity.TaskInstance

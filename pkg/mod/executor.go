@@ -33,7 +33,7 @@ type DefExecutor struct {
 	timeout      time.Duration
 	initQueue    chan *initPayload
 
-	paramRender render.Render
+	paramRender *render.TplRender
 
 	closeCh chan struct{}
 	lock    sync.RWMutex
@@ -53,8 +53,7 @@ func NewDefExecutor(timeout time.Duration, workers int) *DefExecutor {
 		timeout:      timeout,
 		initQueue:    make(chan *initPayload),
 		closeCh:      make(chan struct{}, 1),
-		paramRender: render.NewTplRender(
-			render.NewCachedTplProvider(1000)),
+		paramRender:  render.NewTplRender(),
 	}
 }
 
@@ -239,13 +238,13 @@ func (e *DefExecutor) renderParams(taskIns *entity.TaskInstance) error {
 		}
 	}
 
-	err := value.MapValue(taskIns.Params).WalkString(func(setter value.StringSetter, v string, extra value.Extra) error {
+	err := value.MapValue(taskIns.Params).WalkString(func(walkContext *value.WalkContext, v string) error {
 		if strings.Contains(v, "{{") && strings.Contains(v, "}}") {
 			result, err := e.paramRender.Render(v, data)
 			if err != nil {
 				return err
 			}
-			setter(result)
+			walkContext.Setter(result)
 		}
 		return nil
 	})

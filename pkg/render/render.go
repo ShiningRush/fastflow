@@ -5,20 +5,18 @@ import (
 	"strings"
 )
 
-//go:generate mockgen -source=render.go -destination=render_mock.go -package=render   Render
-type Render interface {
-	Render(tplText string, data interface{}) (string, error)
-}
-
-var _ Render = &TplRender{}
+var (
+	// CacheSize tpl cache size
+	CacheSize = 1000
+)
 
 type TplRender struct {
-	tplProvider TplProvider
+	tplProvider *TplProvider
 }
 
-func NewTplRender(tplProvider TplProvider) *TplRender {
+func NewTplRender() *TplRender {
 	return &TplRender{
-		tplProvider: tplProvider,
+		tplProvider: NewCachedTplProvider(CacheSize),
 	}
 }
 

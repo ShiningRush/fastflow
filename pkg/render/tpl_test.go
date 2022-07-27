@@ -10,7 +10,7 @@ func TestCachedTplGetter_GetTpl(t *testing.T) {
 	defer ctl.Finish()
 
 	type fields struct {
-		tplProvider TplProvider
+		tplProvider *TplProvider
 	}
 	type args struct {
 		tplTexts []string

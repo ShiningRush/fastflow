@@ -9,14 +9,22 @@ type MapValue map[string]interface{}
 
 type Setter func(v interface{})
 
-type MapValueCallback func(setter Setter, v interface{}, e Extra) error
+type MapValueCallback func(walkContext *WalkContext, v interface{}) error
 
-type Extra struct {
-	MapValue MapValue
-	path     []string
+type WalkContext struct {
+	path   []string
+	Setter Setter
 }
 
-func (e *Extra) Path() string {
+func (c *WalkContext) push(path string) {
+	c.path = append(c.path, path)
+}
+
+func (c *WalkContext) pop() {
+	c.path = c.path[:len(c.path)-1]
+}
+
+func (e *WalkContext) Path() string {
 	var b strings.Builder
 	for i, s := range e.path {
 		if !strings.HasPrefix(s, "[") && i != 0 {
@@ -28,34 +36,36 @@ func (e *Extra) Path() string {
 }
 
 func (val MapValue) Walk(callback MapValueCallback) error {
-	return val.walk(callback, Extra{})
+	return val.walk(&WalkContext{}, callback)
 }
 
-func (val MapValue) walk(callback MapValueCallback, e Extra) error {
+func (val MapValue) walk(walkContext *WalkContext, callback MapValueCallback) error {
 	for k, v := range val {
-		extra := Extra{
-			path: append(e.path, k),
-		}
-		if m, ok := v.(map[string]interface{}); ok {
-			// 遍历 map
-			err := MapValue(m).walk(callback, extra)
-			if err != nil {
-				return err
+		err := func() error {
+			walkContext.push(k)
+			defer walkContext.pop()
+			if m, ok := v.(map[string]interface{}); ok {
+				// 遍历 map
+				err := MapValue(m).walk(walkContext, callback)
+				if err != nil {
+					return err
+				}
+				return nil
 			}
-			continue
-		}
-		if s, ok := v.([]interface{}); ok {
-			// 遍历 slice
-			err := val.walkSlice(s, callback, extra)
-			if err != nil {
-				return err
+			if s, ok := v.([]interface{}); ok {
+				// 遍历 slice
+				err := val.walkSlice(walkContext, s, callback)
+				if err != nil {
+					return err
+				}
+				return nil
 			}
-			continue
-		}
-		// 遍历 map 中的 value
-		err := callback(func(v interface{}) {
-			val[k] = v
-		}, v, extra)
+			// 遍历 map 中的 value
+			walkContext.Setter = func(v interface{}) {
+				val[k] = v
+			}
+			return callback(walkContext, v)
+		}()
 		if err != nil {
 			return err
 		}
@@ -63,32 +73,34 @@ func (val MapValue) walk(callback MapValueCallback, e Extra) error {
 	return nil
 }
 
-func (val MapValue) walkSlice(slice []interface{}, callback MapValueCallback, e Extra) error {
+func (val MapValue) walkSlice(walkContext *WalkContext, slice []interface{}, callback MapValueCallback) error {
 	for i, item := range slice {
-		path := fmt.Sprintf("[%d]", i)
-		// 遍历 slice 中的 map
-		extra := Extra{
-			path: append(e.path, path),
-		}
-		if m, ok := item.(map[string]interface{}); ok {
-			err := MapValue(m).walk(callback, extra)
-			if err != nil {
-				return err
+		err := func() error {
+			path := fmt.Sprintf("[%d]", i)
+			walkContext.push(path)
+			defer walkContext.pop()
+			// 遍历 slice 中的 map
+			if m, ok := item.(map[string]interface{}); ok {
+				err := MapValue(m).walk(walkContext, callback)
+				if err != nil {
+					return err
+				}
+				return nil
 			}
-			continue
-		}
-		if s, ok := item.([]interface{}); ok {
-			err := val.walkSlice(s, callback, extra)
-			if err != nil {
-				return err
+			if s, ok := item.([]interface{}); ok {
+				err := val.walkSlice(walkContext, s, callback)
+				if err != nil {
+					return err
+				}
+				return nil
 			}
-			continue
-		}
 
-		// 遍历 slice 中的 value
-		err := callback(func(v interface{}) {
-			slice[i] = v
-		}, item, extra)
+			// 遍历 slice 中的 value
+			walkContext.Setter = func(v interface{}) {
+				slice[i] = v
+			}
+			return callback(walkContext, item)
+		}()
 		if err != nil {
 			return err
 		}
@@ -98,15 +110,13 @@ func (val MapValue) walkSlice(slice []interface{}, callback MapValueCallback, e 
 
 type StringSetter func(s string)
 
-type MapValueStringCallback func(setter StringSetter, v string, e Extra) error
+type MapValueStringCallback func(walkContext *WalkContext, v string) error
 
 func (val MapValue) WalkString(callback MapValueStringCallback) error {
-	return val.walk(func(setter Setter, v interface{}, e Extra) error {
+	return val.walk(&WalkContext{}, func(walkContext *WalkContext, v interface{}) error {
 		if s, ok := v.(string); ok {
-			return callback(func(s string) {
-				setter(s)
-			}, s, e)
+			return callback(walkContext, s)
 		}
 		return nil
-	}, Extra{})
+	})
 }

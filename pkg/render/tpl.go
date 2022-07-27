@@ -7,27 +7,20 @@ import (
 	"github.com/golang/groupcache/lru"
 )
 
-//go:generate mockgen -source=tpl.go -destination=tpl_mock.go -package=render   TplProvider
-type TplProvider interface {
-	GetTpl(tplText string) (*template.Template, error)
-}
-
-var _ TplProvider = &CachedTplProvider{}
-
-type CachedTplProvider struct {
+type TplProvider struct {
 	cache   *lru.Cache
 	rwMutex sync.RWMutex
 }
 
-func NewCachedTplProvider(maxSize int) *CachedTplProvider {
+func NewCachedTplProvider(maxSize int) *TplProvider {
 	cache := lru.New(maxSize)
-	return &CachedTplProvider{
+	return &TplProvider{
 		cache:   cache,
 		rwMutex: sync.RWMutex{},
 	}
 }
 
-func (c *CachedTplProvider) cacheGetTpl(tplText string) (*template.Template, bool) {
+func (c *TplProvider) cacheGetTpl(tplText string) (*template.Template, bool) {
 	c.rwMutex.RLock()
 	defer c.rwMutex.RUnlock()
 	v, ok := c.cache.Get(tplText)
@@ -37,18 +30,18 @@ func (c *CachedTplProvider) cacheGetTpl(tplText string) (*template.Template, boo
 	return v.(*template.Template), true
 }
 
-func (c *CachedTplProvider) cacheSetTpl(tplText string, template *template.Template) {
+func (c *TplProvider) cacheSetTpl(tplText string, template *template.Template) {
 	c.rwMutex.Lock()
 	defer c.rwMutex.Unlock()
 	c.cache.Add(tplText, template)
 }
 
-func (c *CachedTplProvider) GetTpl(tplText string) (*template.Template, error) {
+func (c *TplProvider) GetTpl(tplText string) (*template.Template, error) {
 	tpl, ok := c.cacheGetTpl(tplText)
 	if ok {
 		return tpl, nil
 	}
-	tpl, err := c.ParseTpl(tplText)
+	tpl, err := c.parseTpl(tplText)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +49,7 @@ func (c *CachedTplProvider) GetTpl(tplText string) (*template.Template, error) {
 	return tpl, err
 }
 
-func (c *CachedTplProvider) ParseTpl(tplText string) (*template.Template, error) {
+func (c *TplProvider) parseTpl(tplText string) (*template.Template, error) {
 	tpl, err := template.New(tplText).Parse(tplText)
 	if err != nil {
 		return nil, err

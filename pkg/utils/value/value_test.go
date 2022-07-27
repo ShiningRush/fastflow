@@ -61,7 +61,7 @@ func TestValue_Walk(t *testing.T) {
 			name: "walk",
 			val:  val,
 			callbackBuilder: func(tc TestCase) MapValueCallback {
-				return func(setter Setter, v interface{}, e Extra) error {
+				return func(walkContext *WalkContext, v interface{}) error {
 					tc.logger.Log(v)
 					return nil
 				}
@@ -81,7 +81,7 @@ func TestValue_Walk(t *testing.T) {
 			name: "break",
 			val:  val,
 			callbackBuilder: func(tc TestCase) MapValueCallback {
-				return func(setter Setter, v interface{}, e Extra) error {
+				return func(walkContext *WalkContext, v interface{}) error {
 					tc.logger.Log(v)
 					if v == "internal" {
 						return errors.New("break")
@@ -100,8 +100,8 @@ func TestValue_Walk(t *testing.T) {
 			name: "path",
 			val:  val,
 			callbackBuilder: func(tc TestCase) MapValueCallback {
-				return func(setter Setter, v interface{}, e Extra) error {
-					tc.logger.Log(e.Path())
+				return func(walkContext *WalkContext, v interface{}) error {
+					tc.logger.Log(walkContext.Path())
 					return nil
 				}
 			},
@@ -134,8 +134,8 @@ func TestValue_Walk(t *testing.T) {
 				},
 			},
 			callbackBuilder: func(tc TestCase) MapValueCallback {
-				return func(setter Setter, v interface{}, e Extra) error {
-					tc.logger.Log(e.Path())
+				return func(walkContext *WalkContext, v interface{}) error {
+					tc.logger.Log(walkContext.Path())
 					return nil
 				}
 			},
@@ -171,7 +171,7 @@ func TestValue_WalkString(t *testing.T) {
 			name: "walk string",
 			val:  val,
 			callbackBuilder: func(tt TestCase) MapValueStringCallback {
-				return func(setter StringSetter, v string, e Extra) error {
+				return func(walkContext *WalkContext, v string) error {
 					tt.logger.Log(v)
 					return nil
 				}
@@ -189,7 +189,7 @@ func TestValue_WalkString(t *testing.T) {
 			name: "break",
 			val:  val,
 			callbackBuilder: func(tt TestCase) MapValueStringCallback {
-				return func(setter StringSetter, v string, e Extra) error {
+				return func(walkContext *WalkContext, v string) error {
 					tt.logger.Log(v)
 					if v == "internal" {
 						return errors.New("aa")
