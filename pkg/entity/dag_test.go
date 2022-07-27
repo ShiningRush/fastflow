@@ -140,11 +140,13 @@ func testHook(t *testing.T, dagIns *DagInstance, wantRet string, wantStatus DagI
 
 func TestDagInstanceVars_Render(t *testing.T) {
 	tests := []struct {
+		name       string
 		giveVar    DagInstanceVars
 		giveParams map[string]interface{}
 		wantParams map[string]interface{}
 	}{
 		{
+			name: "simple val",
 			giveVar: DagInstanceVars{
 				"test1": {
 					Value: "test1-v",
@@ -169,6 +171,7 @@ func TestDagInstanceVars_Render(t *testing.T) {
 			},
 		},
 		{
+			name: "json string",
 			giveVar: DagInstanceVars{
 				"jsonString": {
 					Value: `{"cluster_id":"tenc-6h27vfr2"}`,
@@ -184,9 +187,11 @@ func TestDagInstanceVars_Render(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		ret, err := tc.giveVar.Render(tc.giveParams)
-		assert.NoError(t, err)
-		assert.Equal(t, tc.wantParams, ret)
+		t.Run(tc.name, func(t *testing.T) {
+			ret, err := tc.giveVar.Render(tc.giveParams)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.wantParams, ret)
+		})
 	}
 }
 

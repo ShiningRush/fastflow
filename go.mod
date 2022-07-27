@@ -3,6 +3,8 @@ module github.com/shiningrush/fastflow
 go 1.14
 
 require (
+	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6
+	github.com/golang/mock v1.6.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/prometheus/client_golang v1.8.0
 	github.com/shiningrush/goevent v0.1.0

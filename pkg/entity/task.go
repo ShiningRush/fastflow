@@ -146,8 +146,9 @@ type TaskInstance struct {
 	PreChecks   PreChecks              `json:"preChecks,omitempty"  bson:"preChecks,omitempty"`
 
 	// used to save changes
-	Patch   func(*TaskInstance) error `json:"-" bson:"-"`
-	Context run.ExecuteContext        `json:"-" bson:"-"`
+	Patch              func(*TaskInstance) error `json:"-" bson:"-"`
+	Context            run.ExecuteContext        `json:"-" bson:"-"`
+	RelatedDagInstance *DagInstance              `json:"-" bson:"-"`
 
 	// it used to buffer traces, and persist when status changed
 	bufTraces []TraceInfo
@@ -195,9 +196,10 @@ func (t *TaskInstance) GetStatus() TaskInstanceStatus {
 }
 
 // InitialDep
-func (t *TaskInstance) InitialDep(ctx run.ExecuteContext, patch func(*TaskInstance) error) {
+func (t *TaskInstance) InitialDep(ctx run.ExecuteContext, patch func(*TaskInstance) error, dagIns *DagInstance) {
 	t.Patch = patch
 	t.Context = ctx
+	t.RelatedDagInstance = dagIns
 }
 
 // SetStatus will persist task instance
