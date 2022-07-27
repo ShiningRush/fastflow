@@ -143,7 +143,7 @@ func TestValue_Walk(t *testing.T) {
 			assert: func(t *testing.T, tt TestCase) {
 				expected := []interface{}{"a.b", "a.c.d.e", "a.c.d.g[0].h"}
 				logs := tt.logger.Logs()
-				assert.Equal(t, expected, logs)
+				assert.ElementsMatch(t, expected, logs)
 			},
 			logger: &logger{},
 		},

@@ -11,9 +11,18 @@ type Setter func(v interface{})
 
 type MapValueCallback func(walkContext *WalkContext, v interface{}) error
 
+var NoneSetter = func(v interface{}) {}
+
 type WalkContext struct {
 	path   []string
 	Setter Setter
+}
+
+func NewWalkContext() *WalkContext {
+	return &WalkContext{
+		path:   nil,
+		Setter: NoneSetter,
+	}
 }
 
 func (c *WalkContext) push(path string) {
@@ -24,9 +33,9 @@ func (c *WalkContext) pop() {
 	c.path = c.path[:len(c.path)-1]
 }
 
-func (e *WalkContext) Path() string {
+func (c *WalkContext) Path() string {
 	var b strings.Builder
-	for i, s := range e.path {
+	for i, s := range c.path {
 		if !strings.HasPrefix(s, "[") && i != 0 {
 			b.WriteString(".")
 		}
@@ -35,8 +44,12 @@ func (e *WalkContext) Path() string {
 	return b.String()
 }
 
+func (c *WalkContext) resetSetter() {
+	c.Setter = NoneSetter
+}
+
 func (val MapValue) Walk(callback MapValueCallback) error {
-	return val.walk(&WalkContext{}, callback)
+	return val.walk(NewWalkContext(), callback)
 }
 
 func (val MapValue) walk(walkContext *WalkContext, callback MapValueCallback) error {
@@ -64,6 +77,7 @@ func (val MapValue) walk(walkContext *WalkContext, callback MapValueCallback) er
 			walkContext.Setter = func(v interface{}) {
 				val[k] = v
 			}
+			defer walkContext.resetSetter()
 			return callback(walkContext, v)
 		}()
 		if err != nil {
@@ -99,6 +113,7 @@ func (val MapValue) walkSlice(walkContext *WalkContext, slice []interface{}, cal
 			walkContext.Setter = func(v interface{}) {
 				slice[i] = v
 			}
+			defer walkContext.resetSetter()
 			return callback(walkContext, item)
 		}()
 		if err != nil {
@@ -113,7 +128,7 @@ type StringSetter func(s string)
 type MapValueStringCallback func(walkContext *WalkContext, v string) error
 
 func (val MapValue) WalkString(callback MapValueStringCallback) error {
-	return val.walk(&WalkContext{}, func(walkContext *WalkContext, v interface{}) error {
+	return val.walk(NewWalkContext(), func(walkContext *WalkContext, v interface{}) error {
 		if s, ok := v.(string); ok {
 			return callback(walkContext, s)
 		}
