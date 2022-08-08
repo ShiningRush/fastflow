@@ -11,8 +11,6 @@ type Setter func(v interface{})
 
 type MapValueCallback func(walkContext *WalkContext, v interface{}) error
 
-var NoneSetter = func(v interface{}) {}
-
 type WalkContext struct {
 	path   []string
 	Setter Setter
@@ -21,16 +19,12 @@ type WalkContext struct {
 func NewWalkContext() *WalkContext {
 	return &WalkContext{
 		path:   nil,
-		Setter: NoneSetter,
+		Setter: nil,
 	}
 }
 
-func (c *WalkContext) push(path string) {
+func (c *WalkContext) pushPath(path string) {
 	c.path = append(c.path, path)
-}
-
-func (c *WalkContext) pop() {
-	c.path = c.path[:len(c.path)-1]
 }
 
 func (c *WalkContext) Path() string {
@@ -44,8 +38,9 @@ func (c *WalkContext) Path() string {
 	return b.String()
 }
 
-func (c *WalkContext) resetSetter() {
-	c.Setter = NoneSetter
+func (c *WalkContext) reset() {
+	c.Setter = nil
+	c.path = c.path[:len(c.path)-1]
 }
 
 func (val MapValue) Walk(callback MapValueCallback) error {
@@ -55,30 +50,13 @@ func (val MapValue) Walk(callback MapValueCallback) error {
 func (val MapValue) walk(walkContext *WalkContext, callback MapValueCallback) error {
 	for k, v := range val {
 		err := func() error {
-			walkContext.push(k)
-			defer walkContext.pop()
-			if m, ok := v.(map[string]interface{}); ok {
-				// 遍历 map
-				err := MapValue(m).walk(walkContext, callback)
-				if err != nil {
-					return err
-				}
-				return nil
-			}
-			if s, ok := v.([]interface{}); ok {
-				// 遍历 slice
-				err := val.walkSlice(walkContext, s, callback)
-				if err != nil {
-					return err
-				}
-				return nil
-			}
-			// 遍历 map 中的 value
-			walkContext.Setter = func(v interface{}) {
+			walkContext.pushPath(k)
+			defer walkContext.reset()
+
+			setter := func(v interface{}) {
 				val[k] = v
 			}
-			defer walkContext.resetSetter()
-			return callback(walkContext, v)
+			return val.walkValue(walkContext, v, setter, callback)
 		}()
 		if err != nil {
 			return err
@@ -91,36 +69,40 @@ func (val MapValue) walkSlice(walkContext *WalkContext, slice []interface{}, cal
 	for i, item := range slice {
 		err := func() error {
 			path := fmt.Sprintf("[%d]", i)
-			walkContext.push(path)
-			defer walkContext.pop()
-			// 遍历 slice 中的 map
-			if m, ok := item.(map[string]interface{}); ok {
-				err := MapValue(m).walk(walkContext, callback)
-				if err != nil {
-					return err
-				}
-				return nil
-			}
-			if s, ok := item.([]interface{}); ok {
-				err := val.walkSlice(walkContext, s, callback)
-				if err != nil {
-					return err
-				}
-				return nil
-			}
+			walkContext.pushPath(path)
+			defer walkContext.reset()
 
-			// 遍历 slice 中的 value
-			walkContext.Setter = func(v interface{}) {
+			setter := func(v interface{}) {
 				slice[i] = v
 			}
-			defer walkContext.resetSetter()
-			return callback(walkContext, item)
+			return val.walkValue(walkContext, item, setter, callback)
 		}()
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (val MapValue) walkValue(walkContext *WalkContext, v interface{}, setter Setter, callback MapValueCallback) error {
+	// 遍历  map
+	if m, ok := v.(map[string]interface{}); ok {
+		err := MapValue(m).walk(walkContext, callback)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	// 遍历 slice
+	if s, ok := v.([]interface{}); ok {
+		err := val.walkSlice(walkContext, s, callback)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	walkContext.Setter = setter
+	return callback(walkContext, v)
 }
 
 type StringSetter func(s string)
