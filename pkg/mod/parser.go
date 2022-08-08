@@ -435,7 +435,7 @@ func (p *DefParser) parseCmd(dagIns *entity.DagInstance) (err error) {
 			}
 			dagIns.Run()
 		case entity.CommandNameCancel:
-			if err := GetExecutor().CancelTask Ins(dagIns.Cmd.TargetTaskInsIDs); err != nil {
+			if err := GetExecutor().CancelTaskIns(dagIns.Cmd.TargetTaskInsIDs); err != nil {
 				return err
 			}
 		}
