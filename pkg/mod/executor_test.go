@@ -8,8 +8,10 @@ import (
 
 	"github.com/shiningrush/fastflow/pkg/entity"
 	"github.com/shiningrush/fastflow/pkg/entity/run"
+	"github.com/shiningrush/fastflow/pkg/render"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"gopkg.in/yaml.v3"
 )
 
 type TestParam struct {
@@ -26,6 +28,31 @@ type TestParamInt struct {
 
 func NewTestParamInt() interface{} {
 	return &TestParamInt{}
+}
+
+type TestRenderParam struct {
+	Field1    string
+	Shk       string
+	Shi       int
+	Shf       float64
+	Shb       bool
+	Sdk       string
+	Sdi       int
+	Sdf       float64
+	Sdb       bool
+	SnakeCase string `json:"snake_case"`
+	CamelCase string
+	KebabCase string
+}
+
+func NewTestRenderParam() interface{} {
+	return &TestRenderParam{}
+}
+
+func TestRenderParamYaml(t *testing.T) {
+	bytes, err := yaml.Marshal(NewTestRenderParam())
+	assert.NoError(t, err)
+	t.Log(string(bytes))
 }
 
 func TestDefExecutor_CancelTaskIns(t *testing.T) {
@@ -173,6 +200,23 @@ func TestDefExecutor_initWorkerTask(t *testing.T) {
 }
 
 func TestDefExecutor_WorkerDo(t *testing.T) {
+	relatedDagInstance := &entity.DagInstance{
+		Vars: map[string]entity.DagInstanceVar{
+			"shk": {Value: "shv"},
+			"shi": {Value: "100"},
+			"shf": {Value: "3.14159"},
+			"shb": {Value: "true"},
+		},
+		ShareData: &entity.ShareData{Dict: map[string]string{
+			"sdk":        "sdv",
+			"sdi":        "123",
+			"sdf":        "1.2345",
+			"sdb":        "true",
+			"snake_case": "snake_case_value",
+			"camelCase":  "camelCaseValue",
+			"kebab-case": "kebab-case-value",
+		}},
+	}
 	tests := []struct {
 		caseDesc         string
 		giveExecutor     *DefExecutor
@@ -208,6 +252,101 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 					"field1": "test_field",
 				},
 				Status: entity.TaskInstanceStatusSuccess,
+			},
+		},
+		{
+			caseDesc: "param render",
+			giveExecutor: &DefExecutor{
+				paramRender: render.NewTplRender(),
+			},
+			giveTaskIns: &entity.TaskInstance{
+				ActionName: "test",
+				Params: map[string]interface{}{
+					"field1":     "test_field",
+					"shk":        "{{.vars.shk.Value}}",
+					"shi":        "{{.vars.shi.Value}}",
+					"shf":        "{{.vars.shf.Value}}",
+					"shb":        "{{.vars.shb.Value}}",
+					"sdk":        "{{.shareData.sdk}}",
+					"sdi":        "{{.shareData.sdi}}",
+					"sdf":        "{{.shareData.sdf}}",
+					"sdb":        "{{.shareData.sdb}}",
+					"snake_case": "{{.shareData.snake_case}}",
+					"camelCase":  "{{.shareData.camelCase}}",
+				},
+				Status: entity.TaskInstanceStatusInit,
+				Patch: func(instance *entity.TaskInstance) error {
+					return nil
+				},
+				RelatedDagInstance: relatedDagInstance,
+			},
+			giveParameterNew: NewTestRenderParam,
+			wantParams: &TestRenderParam{
+				Field1:    "test_field",
+				Shk:       "shv",
+				Shi:       100,
+				Shf:       3.14159,
+				Shb:       true,
+				Sdk:       "sdv",
+				Sdi:       123,
+				Sdf:       1.2345,
+				Sdb:       true,
+				SnakeCase: "snake_case_value",
+				CamelCase: "camelCaseValue",
+			},
+			wantEntryCalled: true,
+			wantCalledRun:   true,
+			wantEntryTask: &entity.TaskInstance{
+				ActionName: "test",
+				Params: map[string]interface{}{
+					"field1":     "test_field",
+					"shk":        "shv",
+					"shi":        "100",
+					"shf":        "3.14159",
+					"shb":        "true",
+					"sdk":        "sdv",
+					"sdi":        "123",
+					"sdf":        "1.2345",
+					"sdb":        "true",
+					"snake_case": "snake_case_value",
+					"camelCase":  "camelCaseValue",
+				},
+				Status:             entity.TaskInstanceStatusSuccess,
+				RelatedDagInstance: relatedDagInstance,
+			},
+		},
+		{
+			caseDesc: "param render failed",
+			giveExecutor: &DefExecutor{
+				paramRender: render.NewTplRender(),
+			},
+			giveTaskIns: &entity.TaskInstance{
+				ActionName: "test",
+				Params: map[string]interface{}{
+					"a": map[string]interface{}{
+						"b": "{{.a.b.c}}",
+					},
+				},
+				Status: entity.TaskInstanceStatusInit,
+				Patch: func(instance *entity.TaskInstance) error {
+					return nil
+				},
+				RelatedDagInstance: relatedDagInstance,
+			},
+			giveParameterNew: NewTestRenderParam,
+			wantParams:       &TestRenderParam{},
+			wantEntryCalled:  true,
+			wantCalledRun:    false,
+			wantEntryTask: &entity.TaskInstance{
+				ActionName: "test",
+				Params: map[string]interface{}{
+					"a": map[string]interface{}{
+						"b": "{{.a.b.c}}",
+					},
+				},
+				Status:             entity.TaskInstanceStatusFailed,
+				Reason:             "get task params from task instance failed: renderParams failed: execute tpl failed: template: {{.a.b.c}}:1:4: executing \"{{.a.b.c}}\" at <.a.b.c>: map has no entry for key \"a\"",
+				RelatedDagInstance: relatedDagInstance,
 			},
 		},
 		{
@@ -307,7 +446,7 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 				},
 				Status: entity.TaskInstanceStatusFailed,
 				Reason: "get task params from task instance failed: 1 error(s) decoding:\n\n" +
-					"* cannot parse 'Field1' as int: strconv.ParseInt: parsing \"qqq\": invalid syntax",
+					"* cannot parse 'field1' as int: strconv.ParseInt: parsing \"qqq\": invalid syntax",
 			},
 		},
 		{
@@ -361,7 +500,7 @@ func TestDefExecutor_WorkerDo(t *testing.T) {
 
 			tc.giveTaskIns.InitialDep(nil, func(instance *entity.TaskInstance) error {
 				return nil
-			})
+			}, tc.giveTaskIns.RelatedDagInstance)
 			if !tc.isCancel {
 				tc.giveExecutor.cancelMap.Store(tc.giveTaskIns.ID, nil)
 			}
@@ -539,6 +678,127 @@ func TestDefExecutor_getFromTaskInstance(t *testing.T) {
 			e := &DefExecutor{}
 			tt.wantErr(t, e.getFromTaskInstance(tt.args.taskIns, tt.args.params), fmt.Sprintf("getFromTaskInstance(%v, %v)", tt.args.taskIns, tt.args.params))
 			assert.Equal(t, tt.want, tt.args.params)
+		})
+	}
+}
+
+func TestDefExecutor_renderParams(t *testing.T) {
+	paramRender := render.NewTplRender()
+
+	type fields struct {
+		paramRender *render.TplRender
+	}
+	type args struct {
+		taskIns *entity.TaskInstance
+	}
+	dagIns := &entity.DagInstance{
+		Vars: entity.DagInstanceVars{
+			"ka": entity.DagInstanceVar{
+				Value: "va",
+			},
+			"kb": entity.DagInstanceVar{
+				Value: "vb",
+			},
+		},
+		ShareData: &entity.ShareData{
+			Dict: map[string]string{
+				"ska":   "skb",
+				"skint": "1",
+			},
+		},
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr assert.ErrorAssertionFunc
+		want    map[string]interface{}
+	}{
+		{
+			name: "success",
+			fields: fields{
+				paramRender: paramRender,
+			},
+			args: args{
+				taskIns: &entity.TaskInstance{
+					RelatedDagInstance: dagIns,
+					Params: map[string]interface{}{
+						"a": "{{.shareData.ska}}",
+						"b": "{{.vars.ka.Value}}",
+						"c": map[string]interface{}{
+							"d": map[string]interface{}{},
+						},
+					},
+				},
+			},
+			want: map[string]interface{}{
+				"a": "skb",
+				"b": "va",
+				"c": map[string]interface{}{
+					"d": map[string]interface{}{},
+				},
+			},
+			wantErr: assert.NoError,
+		},
+		{
+			name: "map has no entry for key \"as\"",
+			fields: fields{
+				paramRender: paramRender,
+			},
+			args: args{
+				taskIns: &entity.TaskInstance{
+					RelatedDagInstance: dagIns,
+					Params: map[string]interface{}{
+						"c": map[string]interface{}{
+							"d": map[string]interface{}{
+								"e": "{{.as.as.as}}",
+							},
+						},
+					},
+				},
+			},
+			wantErr: assert.Error,
+			want: map[string]interface{}{
+				"c": map[string]interface{}{
+					"d": map[string]interface{}{
+						"e": "{{.as.as.as}}",
+					},
+				}},
+		},
+		{
+			name: "function \"hhh\" not defined",
+			fields: fields{
+				paramRender: paramRender,
+			},
+			args: args{
+				taskIns: &entity.TaskInstance{
+					RelatedDagInstance: dagIns,
+					Params: map[string]interface{}{
+						"c": map[string]interface{}{
+							"d": map[string]interface{}{
+								"e": "{{hhh}}",
+							},
+						},
+					},
+				},
+			},
+			wantErr: assert.Error,
+			want: map[string]interface{}{
+				"c": map[string]interface{}{
+					"d": map[string]interface{}{
+						"e": "{{hhh}}",
+					},
+				}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &DefExecutor{
+				paramRender: tt.fields.paramRender,
+			}
+			err := e.renderParams(tt.args.taskIns)
+			tt.wantErr(t, err, fmt.Sprintf("renderParams(%v)", tt.args.taskIns))
+			assert.Equal(t, tt.want, tt.args.taskIns.Params)
 		})
 	}
 }
