@@ -206,7 +206,10 @@ func main() {
 ### 准备一个Mongo实例
 如果已经你已经有了可测试的实例，可以直接替换为你的实例，如果没有的话，可以使用Docker容器在本地跑一个，指令如下：
 ```bash
-docker run -d --rm --name fastflow-mongo -p 27017:27017 mongo
+docker run -d --rm --name fastflow-mongo -p 27017:27017 \
+	-e MONGO_INITDB_ROOT_USERNAME=root \
+	-e MONGO_INITDB_ROOT_PASSWORD=pwd \
+	mongo
 ```
 
 ### 运行 fastflow
@@ -311,22 +314,53 @@ tasks:
 ```
 
 ## Basic
-### Task与Task之间的通信
-由于任务都是基于 `goroutine` 来执行，因此任务之间的 `context` 是共享的，意味着你完全可以使用以下的代码：
+### Action内的通信
+Action的通信主要指 `Action.RunBefore`、`Action.Run` 与 `Action.RunAfter` 之间的信息共享，目前有如下方式：
+- **基于 context**: 由于同一个 `Task` 在执行期间共享同一个 `context`，因此你可以通过它来传递信息，但是注意这样弊端，当节点重启时，如果 `Task` 尚未执行完毕，那么这部分内容会丢失。
 ```go
-func (a *UpAction) Run(ctx run.ExecuteContext, params interface{}) error {
+func (a *DemoAction) Run(ctx run.ExecuteContext, params interface{}) error {
 	ctx.WithValue("key", "value")
 	return nil
 }
 
-func (a *DownAction) Run(ctx run.ExecuteContext, params interface{}) error {
+func (a *DemoAction) RunAfter(ctx run.ExecuteContext, params interface{}) error {
 	val := ctx.Context().Value("key")
 	return nil
 }
 ```
+- **使用 ShareData**: 如果不想因为故障or升级而丢失你的更改，可以使用 **ShareData** 来进行通信，ShareData 是整个 在整个 DagInstance 的生命周期都会共享的一块数据空间，每次对它的写入都会通过 `Store` 组件持久化，以确保数据不会丢失，用法如下：
+```go
+func (a *DemoAction) Run(ctx run.ExecuteContext, params interface{}) error {
+	ctx.ShareData().Set("key", "value")
+	return nil
+}
 
-但是注意这样做有个弊端：当节点重启时，如果任务尚未执行完毕，那么这部分内容会丢失。
-如果不想因为故障or升级而丢失你的更改，可以使用 **ShareData** 来传递进行通信，ShareData 是整个 在整个 DagInstance 的生命周期都会共享的一块数据空间，每次对它的写入都会通过 `Store` 组件持久化，以确保数据不会丢失，用法如下：
+func (a *DemoAction) RunAfter(ctx run.ExecuteContext, params interface{}) error {
+	val := ctx.ShareData().Get("key")
+	return nil
+}
+```
+- **共享内存**: 由于任务都是基于 `goroutine` 来执行，因此彼此的内存都是可访问的，意味着你完全可以基于内存共享来实现通信。不过不太推荐你使用这样的方式，除了内存的易失性之外，共享内存在可读性与线程同步等都需要作额外的考虑。
+```go
+var (
+	shareMap = map[string]interface{}
+)
+
+func (a *DemoAction) Run(ctx run.ExecuteContext, params interface{}) error {
+	shareMap["key"] =  "value"
+	return nil
+}
+
+func (a *DemoAction) RunAfter(ctx run.ExecuteContext, params interface{}) error {
+	val := shareMap["key"]
+	return nil
+}
+```
+
+
+### Task与Task之间的通信
+如果我们想要在不同Task之间传递数据我们有哪些方式呢
+- **ShareData**: 同Action内的方式相同
 ```go
 func (a *UpAction) Run(ctx run.ExecuteContext, params interface{}) error {
 	ctx.ShareData().Set("key", "value")
@@ -336,6 +370,22 @@ func (a *UpAction) Run(ctx run.ExecuteContext, params interface{}) error {
 func (a *DownAction) Run(ctx run.ExecuteContext, params interface{}) error {
 	val := ctx.ShareData().Get("key")
 	return nil
+}
+```
+- **共享内存**: 同Action内的方式相同
+```go
+var (
+shareMap = map[string]interface{}
+)
+
+func (a *UpAction) Run(ctx run.ExecuteContext, params interface{}) error {
+shareMap["key"] =  "value"
+return nil
+}
+
+func (a *DownAction) Run(ctx run.ExecuteContext, params interface{}) error {
+val := shareMap["key"]
+return nil
 }
 ```
 
