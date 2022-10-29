@@ -206,7 +206,7 @@ func main() {
 ### 准备一个Mongo实例
 如果已经你已经有了可测试的实例，可以直接替换为你的实例，如果没有的话，可以使用Docker容器在本地跑一个，指令如下：
 ```bash
-docker run -d --name fastflow-mongo --network host mongo
+docker run -d --rm --name fastflow-mongo -p 27017:27017 mongo
 ```
 
 ### 运行 fastflow
