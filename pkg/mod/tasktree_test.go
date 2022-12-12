@@ -2,7 +2,7 @@ package mod
 
 import (
 	"fmt"
-	"github.com/shiningrush/fastflow/pkg/entity"
+	"github.com/realeyeeos/fastflow/pkg/entity"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

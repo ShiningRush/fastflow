@@ -2,7 +2,7 @@ package entity
 
 import (
 	"fmt"
-	"github.com/shiningrush/fastflow/pkg/entity/run"
+	"github.com/realeyeeos/fastflow/pkg/entity/run"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"strings"

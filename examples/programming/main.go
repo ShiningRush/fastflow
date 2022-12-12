@@ -6,13 +6,13 @@ import (
 	"log"
 	"time"
 
-	"github.com/shiningrush/fastflow"
-	mongoKeeper "github.com/shiningrush/fastflow/keeper/mongo"
-	"github.com/shiningrush/fastflow/pkg/entity"
-	"github.com/shiningrush/fastflow/pkg/entity/run"
-	"github.com/shiningrush/fastflow/pkg/mod"
-	"github.com/shiningrush/fastflow/pkg/utils/data"
-	mongoStore "github.com/shiningrush/fastflow/store/mongo"
+	"github.com/realeyeeos/fastflow"
+	mongoKeeper "github.com/realeyeeos/fastflow/keeper/mongo"
+	"github.com/realeyeeos/fastflow/pkg/entity"
+	"github.com/realeyeeos/fastflow/pkg/entity/run"
+	"github.com/realeyeeos/fastflow/pkg/mod"
+	"github.com/realeyeeos/fastflow/pkg/utils/data"
+	mongoStore "github.com/realeyeeos/fastflow/store/mongo"
 )
 
 type PrintAction struct {
@@ -35,7 +35,7 @@ func main() {
 
 	// init keeper, it used to e
 	keeper := mongoKeeper.NewKeeper(&mongoKeeper.KeeperOption{
-		Key:      "worker-1",
+		Key: "worker-1",
 		// if your mongo does not set user/pwd, you should remove it
 		ConnStr:  "mongodb://root:pwd@127.0.0.1:27017/fastflow?authSource=admin",
 		Database: "mongo-demo",

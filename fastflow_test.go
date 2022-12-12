@@ -2,9 +2,9 @@ package fastflow
 
 import (
 	"fmt"
-	"github.com/shiningrush/fastflow/pkg/entity"
-	"github.com/shiningrush/fastflow/pkg/mod"
-	"github.com/shiningrush/fastflow/pkg/utils"
+	"github.com/realeyeeos/fastflow/pkg/entity"
+	"github.com/realeyeeos/fastflow/pkg/mod"
+	"github.com/realeyeeos/fastflow/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gopkg.in/yaml.v3"

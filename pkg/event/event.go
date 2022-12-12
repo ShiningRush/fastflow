@@ -1,6 +1,6 @@
 package event
 
-import "github.com/shiningrush/fastflow/pkg/entity"
+import "github.com/realeyeeos/fastflow/pkg/entity"
 
 const (
 	KeyDagInstanceUpdated = "DagInstanceUpdated"

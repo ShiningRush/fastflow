@@ -1,7 +1,7 @@
 package mod
 
 import (
-	entity "github.com/shiningrush/fastflow/pkg/entity"
+	entity "github.com/realeyeeos/fastflow/pkg/entity"
 	mock "github.com/stretchr/testify/mock"
 )
 

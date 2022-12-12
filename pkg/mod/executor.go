@@ -7,14 +7,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shiningrush/fastflow/pkg/render"
-	"github.com/shiningrush/fastflow/pkg/utils/value"
+	"github.com/realeyeeos/fastflow/pkg/render"
+	"github.com/realeyeeos/fastflow/pkg/utils/value"
 
 	"github.com/mitchellh/mapstructure"
-	"github.com/shiningrush/fastflow/pkg/entity"
-	"github.com/shiningrush/fastflow/pkg/entity/run"
-	"github.com/shiningrush/fastflow/pkg/event"
-	"github.com/shiningrush/fastflow/pkg/log"
+	"github.com/realeyeeos/fastflow/pkg/entity"
+	"github.com/realeyeeos/fastflow/pkg/entity/run"
+	"github.com/realeyeeos/fastflow/pkg/event"
+	"github.com/realeyeeos/fastflow/pkg/log"
 	"github.com/shiningrush/goevent"
 )
 

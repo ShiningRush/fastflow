@@ -4,8 +4,8 @@ package mongo
 
 import (
 	"fmt"
-	"github.com/shiningrush/fastflow/pkg/entity"
-	"github.com/shiningrush/fastflow/pkg/mod"
+	"github.com/realeyeeos/fastflow/pkg/entity"
+	"github.com/realeyeeos/fastflow/pkg/mod"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
