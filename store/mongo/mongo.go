@@ -476,23 +476,28 @@ func (s *Store) BatchDeleteTaskIns(ids []string) error {
 	return s.genericBatchDelete(ids, s.taskInsClsName)
 }
 
-// DropDagIns
-func (s *Store) DropDagIns() error {
-	return s.genericDrop(s.dagInsClsName)
+// DelDagInsBytime
+func (s *Store) DelDagInsBytime(hours int) error {
+	return s.batchDeleteBytime(hours, s.dagInsClsName)
 }
 
-// DropTaskIns
-func (s *Store) DropTaskIns() error {
-	return s.genericDrop(s.taskInsClsName)
+// DelTaskInsBytime
+func (s *Store) DelTaskInsBytime(hours int) error {
+	return s.batchDeleteBytime(hours, s.taskInsClsName)
 }
 
-func (s *Store) genericDrop(clsName string) error {
+func (s *Store) batchDeleteBytime(hours int, clsName string) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.opt.Timeout)
 	defer cancel()
 
-	err := s.mongoDb.Collection(clsName).Drop(ctx)
+	timeUnix := time.Now().Unix() - int64(hours)*3600
+	_, err := s.mongoDb.Collection(clsName).DeleteMany(ctx, bson.M{
+		"createdAt": bson.M{
+			"$lte": timeUnix,
+		},
+	})
 	if err != nil {
-		return fmt.Errorf("drop failed: %w", err)
+		return fmt.Errorf("delete failed: %w", err)
 	}
 
 	return nil
