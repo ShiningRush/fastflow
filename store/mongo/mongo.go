@@ -476,6 +476,28 @@ func (s *Store) BatchDeleteTaskIns(ids []string) error {
 	return s.genericBatchDelete(ids, s.taskInsClsName)
 }
 
+// DropDagIns
+func (s *Store) DropDagIns() error {
+	return s.genericDrop(s.dagInsClsName)
+}
+
+// DropTaskIns
+func (s *Store) DropTaskIns() error {
+	return s.genericDrop(s.taskInsClsName)
+}
+
+func (s *Store) genericDrop(clsName string) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.opt.Timeout)
+	defer cancel()
+
+	err := s.mongoDb.Collection(clsName).Drop(ctx)
+	if err != nil {
+		return fmt.Errorf("drop failed: %w", err)
+	}
+
+	return nil
+}
+
 func (s *Store) genericBatchDelete(ids []string, clsName string) error {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.opt.Timeout)
 	defer cancel()
