@@ -114,12 +114,28 @@ func (s *Store) CreateDag(dag *entity.Dag) error {
 
 // CreateDagIns
 func (s *Store) CreateDagIns(dagIns *entity.DagInstance) error {
-	return s.genericCreate(dagIns, s.dagInsClsName)
+	err := s.genericCreate(dagIns, s.dagInsClsName)
+	if err != nil {
+		fmt.Errorf("genericCreate Dag instance failed: %w", err)
+	}
+	err = s.createIndexForDagIns()
+	if err != nil {
+		fmt.Errorf("createIndexForDagIns failed: %w", err)
+	}
+	return nil
 }
 
 // CreateTaskIns
 func (s *Store) CreateTaskIns(taskIns *entity.TaskInstance) error {
-	return s.genericCreate(taskIns, s.taskInsClsName)
+	err := s.genericCreate(taskIns, s.taskInsClsName)
+	if err != nil {
+		fmt.Errorf("genericCreate task instance failed: %w", err)
+	}
+	err = s.createIndexForTaskIns()
+	if err != nil {
+		fmt.Errorf("createIndexForTaskIns failed: %w", err)
+	}
+	return nil
 }
 
 func (s *Store) genericCreate(input entity.BaseInfoGetter, clsName string) error {
@@ -527,4 +543,37 @@ func (s *Store) Marshal(obj interface{}) ([]byte, error) {
 // Unmarshal
 func (s *Store) Unmarshal(bytes []byte, ptr interface{}) error {
 	return bson.Unmarshal(bytes, ptr)
+}
+
+// create index for DagIns
+func (s *Store) createIndexForDagIns() error {
+	models := []mongo.IndexModel{
+		{Keys: bson.D{{"cmd", 1}}, Options: options.Index().SetName("cmd_index")},
+		{Keys: bson.D{{"status", 1}}, Options: options.Index().SetName("status_index")},
+		{Keys: bson.D{{"updated_at", 1}}, Options: options.Index().SetName("updated_at_index")},
+	}
+	return s.createIndex(s.dagInsClsName, models)
+}
+
+// create index for TaskIns
+func (s *Store) createIndexForTaskIns() error {
+	models := []mongo.IndexModel{
+		{Keys: bson.D{{"status", 1}}, Options: options.Index().SetName("status_index")},
+		{Keys: bson.D{{"dagInsId", 1}}, Options: options.Index().SetName("dag_ins_id_index")},
+		{Keys: bson.D{{"updated_at", 1}}, Options: options.Index().SetName("updated_at_index")},
+	}
+	return s.createIndex(s.taskInsClsName, models)
+}
+
+// create index
+func (s *Store) createIndex(clsName string, models []mongo.IndexModel) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), s.opt.Timeout)
+	defer cancel()
+
+	opts := options.CreateIndexes().SetMaxTime(2 * time.Second)
+	_, err := s.mongoDb.Collection(clsName).Indexes().CreateMany(ctx, models, opts)
+	if err != nil {
+		return err
+	}
+	return nil
 }
