@@ -493,30 +493,30 @@ func (s *Store) BatchDeleteTaskIns(ids []string) error {
 }
 
 // DelDagInsBytime
-func (s *Store) DelDagInsBytime(hours int) error {
+func (s *Store) DelDagInsBytime(hours int) (int64, error) {
 	return s.batchDeleteBytime(hours, s.dagInsClsName)
 }
 
 // DelTaskInsBytime
-func (s *Store) DelTaskInsBytime(hours int) error {
+func (s *Store) DelTaskInsBytime(hours int) (int64, error) {
 	return s.batchDeleteBytime(hours, s.taskInsClsName)
 }
 
-func (s *Store) batchDeleteBytime(hours int, clsName string) error {
+func (s *Store) batchDeleteBytime(hours int, clsName string) (int64, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), s.opt.Timeout)
 	defer cancel()
 
 	timeUnix := time.Now().Unix() - int64(hours)*3600
-	_, err := s.mongoDb.Collection(clsName).DeleteMany(ctx, bson.M{
+	delCount, err := s.mongoDb.Collection(clsName).DeleteMany(ctx, bson.M{
 		"createdAt": bson.M{
 			"$lte": timeUnix,
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("delete failed: %w", err)
+		return 0, fmt.Errorf("delete failed: %w", err)
 	}
 
-	return nil
+	return delCount.DeletedCount, nil
 }
 
 func (s *Store) genericBatchDelete(ids []string, clsName string) error {
