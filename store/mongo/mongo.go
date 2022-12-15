@@ -67,6 +67,15 @@ func (s *Store) Init() error {
 	s.mongoClient = client
 	s.mongoDb = s.mongoClient.Database(s.opt.Database)
 
+	err = s.createIndexForDagIns()
+	if err != nil {
+		return fmt.Errorf("createIndexForDagIns failed: %w", err)
+	}
+	err = s.createIndexForTaskIns()
+	if err != nil {
+		return fmt.Errorf("createIndexForTaskIns failed: %w", err)
+	}
+
 	return nil
 }
 
@@ -538,7 +547,7 @@ func (s *Store) Unmarshal(bytes []byte, ptr interface{}) error {
 }
 
 // create index for DagIns
-func (s *Store) CreateIndexForDagIns() error {
+func (s *Store) createIndexForDagIns() error {
 	models := []mongo.IndexModel{
 		{Keys: bson.D{{"cmd", 1}}, Options: options.Index().SetName("cmd_index")},
 		{Keys: bson.D{{"status", 1}}, Options: options.Index().SetName("status_index")},
@@ -548,7 +557,7 @@ func (s *Store) CreateIndexForDagIns() error {
 }
 
 // create index for TaskIns
-func (s *Store) CreateIndexForTaskIns() error {
+func (s *Store) createIndexForTaskIns() error {
 	models := []mongo.IndexModel{
 		{Keys: bson.D{{"status", 1}}, Options: options.Index().SetName("status_index")},
 		{Keys: bson.D{{"dagInsId", 1}}, Options: options.Index().SetName("dag_ins_id_index")},
