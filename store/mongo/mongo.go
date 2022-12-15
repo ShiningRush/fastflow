@@ -116,11 +116,7 @@ func (s *Store) CreateDag(dag *entity.Dag) error {
 func (s *Store) CreateDagIns(dagIns *entity.DagInstance) error {
 	err := s.genericCreate(dagIns, s.dagInsClsName)
 	if err != nil {
-		fmt.Errorf("genericCreate Dag instance failed: %w", err)
-	}
-	err = s.createIndexForDagIns()
-	if err != nil {
-		fmt.Errorf("createIndexForDagIns failed: %w", err)
+		return fmt.Errorf("genericCreate Dag instance failed: %w", err)
 	}
 	return nil
 }
@@ -129,11 +125,7 @@ func (s *Store) CreateDagIns(dagIns *entity.DagInstance) error {
 func (s *Store) CreateTaskIns(taskIns *entity.TaskInstance) error {
 	err := s.genericCreate(taskIns, s.taskInsClsName)
 	if err != nil {
-		fmt.Errorf("genericCreate task instance failed: %w", err)
-	}
-	err = s.createIndexForTaskIns()
-	if err != nil {
-		fmt.Errorf("createIndexForTaskIns failed: %w", err)
+		return fmt.Errorf("genericCreate task instance failed: %w", err)
 	}
 	return nil
 }
@@ -546,7 +538,7 @@ func (s *Store) Unmarshal(bytes []byte, ptr interface{}) error {
 }
 
 // create index for DagIns
-func (s *Store) createIndexForDagIns() error {
+func (s *Store) CreateIndexForDagIns() error {
 	models := []mongo.IndexModel{
 		{Keys: bson.D{{"cmd", 1}}, Options: options.Index().SetName("cmd_index")},
 		{Keys: bson.D{{"status", 1}}, Options: options.Index().SetName("status_index")},
@@ -556,7 +548,7 @@ func (s *Store) createIndexForDagIns() error {
 }
 
 // create index for TaskIns
-func (s *Store) createIndexForTaskIns() error {
+func (s *Store) CreateIndexForTaskIns() error {
 	models := []mongo.IndexModel{
 		{Keys: bson.D{{"status", 1}}, Options: options.Index().SetName("status_index")},
 		{Keys: bson.D{{"dagInsId", 1}}, Options: options.Index().SetName("dag_ins_id_index")},
