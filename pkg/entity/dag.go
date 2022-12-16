@@ -148,6 +148,7 @@ func (d *ShareData) Get(key string) (interface{}, bool) {
 	return v, ok
 }
 
+// GetAll return all data in share data
 func (d *ShareData) GetAll() map[string]interface{} {
 	return d.Dict
 }
