@@ -25,6 +25,7 @@ func NewDefExecuteContext(
 }
 
 // ExecuteContext is a context using by action
+//
 //go:generate mockery --name=ExecuteContext --output=. --inpackage  --filename=run_mock.go
 type ExecuteContext interface {
 	Context() context.Context
@@ -47,8 +48,9 @@ type ExecuteContext interface {
 
 // ShareDataOperator used to operate share data
 type ShareDataOperator interface {
-	Get(key string) (string, bool)
-	Set(key string, val string)
+	Get(key string) (interface{}, bool)
+	Set(key string, val interface{})
+	GetAll() map[string]interface{}
 }
 
 var _ ExecuteContext = &DefExecuteContext{}

@@ -104,7 +104,7 @@ var (
 // if you want a high performance just within same task, you can use
 // ExecuteContext's Context
 type ShareData struct {
-	Dict map[string]string
+	Dict map[string]interface{}
 	Save func(data *ShareData) error
 
 	mutex sync.Mutex
@@ -118,7 +118,7 @@ func (d *ShareData) MarshalBSON() ([]byte, error) {
 // UnmarshalBSON used by mongo
 func (d *ShareData) UnmarshalBSON(data []byte) error {
 	if d.Dict == nil {
-		d.Dict = make(map[string]string)
+		d.Dict = make(map[string]interface{})
 	}
 	return StoreUnmarshal(data, &d.Dict)
 }
@@ -131,13 +131,13 @@ func (d *ShareData) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON used by json
 func (d *ShareData) UnmarshalJSON(data []byte) error {
 	if d.Dict == nil {
-		d.Dict = make(map[string]string)
+		d.Dict = make(map[string]interface{})
 	}
 	return json.Unmarshal(data, &d.Dict)
 }
 
 // Get value from share data, it is thread-safe.
-func (d *ShareData) Get(key string) (string, bool) {
+func (d *ShareData) Get(key string) (interface{}, bool) {
 	if d.Dict == nil {
 		return "", false
 	}
@@ -148,8 +148,12 @@ func (d *ShareData) Get(key string) (string, bool) {
 	return v, ok
 }
 
+func (d *ShareData) GetAll() map[string]interface{} {
+	return d.Dict
+}
+
 // Set value to share data, it is thread-safe.
-func (d *ShareData) Set(key string, val string) {
+func (d *ShareData) Set(key string, val interface{}) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	d.Dict[key] = val
