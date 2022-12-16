@@ -10,7 +10,7 @@ func StringsContain(strs []string, str string) bool {
 	return false
 }
 
-type KeyValueGetter func(key string) (string, bool)
+type KeyValueGetter func(key string) (interface{}, bool)
 type KeyValueIterator func(KeyValueIterateFunc)
 type KeyValueIterateFunc func(key, val string) (stop bool)
 

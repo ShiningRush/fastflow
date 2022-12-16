@@ -112,9 +112,9 @@ func (c *TaskCondition) IsMeet(dagIns *DagInstance) bool {
 
 	switch c.Op {
 	case OperatorIn:
-		return isStrInArray(v, c.Values)
+		return isStrInArray(v.(string), c.Values)
 	case OperatorNotIn:
-		return !isStrInArray(v, c.Values)
+		return !isStrInArray(v.(string), c.Values)
 	}
 	return false
 }

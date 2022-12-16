@@ -204,7 +204,7 @@ type DagInstanceLifecycleHook struct {
 
 // VarsGetter
 func (dagIns *DagInstance) VarsGetter() utils.KeyValueGetter {
-	return func(key string) (string, bool) {
+	return func(key string) (interface{}, bool) {
 		val, ok := dagIns.Vars[key]
 		return val.Value, ok
 	}
