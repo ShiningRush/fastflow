@@ -150,7 +150,13 @@ func (d *ShareData) Get(key string) (interface{}, bool) {
 
 // GetAll return all data in share data
 func (d *ShareData) GetAll() map[string]interface{} {
-	return d.Dict
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	var cache = make(map[string]interface{})
+	for k, v := range d.Dict {
+		cache[k] = v
+	}
+	return cache
 }
 
 // Set value to share data, it is thread-safe.
