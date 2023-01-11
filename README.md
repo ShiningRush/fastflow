@@ -101,12 +101,13 @@ tasks:
 - id: "task1"
   actionName: "PrintAction"
   preCheck:
-  - act: skip #you can set "skip" or "block"
-    conditions:
-    - source: vars # source could be "vars" or "share-data"
-      key: "fileName"
-      op: "in"
-      values: ["warn.txt", "error.txt"]
+    isIgnoreFiles:
+      act: skip #you can set "skip" or "block"
+      conditions:
+      - source: vars # source could be "vars" or "share-data"
+        key: "fileName"
+        op: "in"
+        values: ["warn.txt", "error.txt"]
 ```
 Task 的状态有以下几个：
 - **init**: Task已经初始化完毕，等待执行
