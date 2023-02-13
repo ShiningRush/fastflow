@@ -1,4 +1,4 @@
-package http
+package ahttp
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	ActionHTTP = "http"
+	ActionHTTP = "HTTP"
 
 	DefaultTimeout             float64 = 10 * 60 // 10 minutes
 	DefaultResponseContentType         = "application/json"
