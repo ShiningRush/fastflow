@@ -2,14 +2,15 @@ package exporter
 
 import (
 	"context"
+	"net/http"
+	"sync/atomic"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/shiningrush/fastflow/pkg/entity"
 	"github.com/shiningrush/fastflow/pkg/event"
 	"github.com/shiningrush/fastflow/pkg/mod"
 	"github.com/shiningrush/goevent"
-	"net/http"
-	"sync/atomic"
 )
 
 var (

@@ -3,6 +3,7 @@ package mod
 import (
 	"errors"
 	"fmt"
+
 	"github.com/shiningrush/fastflow/pkg/entity"
 )
 

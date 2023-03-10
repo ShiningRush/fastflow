@@ -1,8 +1,9 @@
 package entity
 
 import (
-	"github.com/shiningrush/fastflow/store"
 	"time"
+
+	"github.com/shiningrush/fastflow/store"
 )
 
 // BaseInfo

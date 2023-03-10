@@ -1,14 +1,16 @@
+//go:build integration
 // +build integration
 
 package mongo
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var mongoConn = "mongodb://root:pwd@127.0.0.1:27017/fastflow?authSource=admin"

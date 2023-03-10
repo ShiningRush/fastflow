@@ -1,15 +1,17 @@
+//go:build integration
 // +build integration
 
 package mongo
 
 import (
 	"context"
-	"github.com/shiningrush/fastflow/pkg/mod"
-	"github.com/shiningrush/fastflow/pkg/utils/data"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"testing"
 	"time"
+
+	"github.com/shiningrush/fastflow/pkg/mod"
+	"github.com/shiningrush/fastflow/pkg/utils/data"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMongoMutex_Sanity(t *testing.T) {

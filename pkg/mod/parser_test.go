@@ -3,13 +3,14 @@ package mod
 import (
 	"errors"
 	"fmt"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/shiningrush/fastflow/pkg/entity"
 	"github.com/shiningrush/fastflow/pkg/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"sync"
-	"testing"
-	"time"
 )
 
 func TestDefParser_cancelChildTask(t *testing.T) {

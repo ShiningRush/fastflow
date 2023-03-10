@@ -109,7 +109,7 @@ func main() {
 	})
 	// init keeper
 	keeper := mongoKeeper.NewKeeper(&mongoKeeper.KeeperOption{
-		Key:      "worker-1",
+		Key: "worker-1",
 		// if your mongo does not set user/pwd, you should remove it
 		ConnStr:  "mongodb://root:pwd@127.0.0.1:27017/fastflow?authSource=admin",
 		Database: "mongo-demo",

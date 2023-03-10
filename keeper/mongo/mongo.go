@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/shiningrush/fastflow/keeper"
 	"github.com/shiningrush/fastflow/pkg/event"
 	"github.com/shiningrush/fastflow/pkg/log"
@@ -15,9 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 const LeaderKey = "leader"
