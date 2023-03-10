@@ -448,14 +448,20 @@ func TestDefParser_executeNext(t *testing.T) {
 
 func TestDefParser_EntryTaskIns(t *testing.T) {
 	tests := []struct {
-		caseDesc    string
-		giveParser  *DefParser
-		giveTaskIns []*entity.TaskInstance
+		caseDesc       string
+		giveParser     *DefParser
+		giveTaskIns    []*entity.TaskInstance
+		giveWorkerNum  int
+		giveWorkerCost time.Duration
+
+		closeWhenTasks int
+
 		wantTaskMap map[int][]*entity.TaskInstance
 	}{
 		{
-			caseDesc:   "sanity",
-			giveParser: &DefParser{},
+			caseDesc:      "sanity",
+			giveParser:    &DefParser{},
+			giveWorkerNum: 6,
 			giveTaskIns: []*entity.TaskInstance{
 				{BaseInfo: entity.BaseInfo{ID: "task-1"}, DagInsID: "dag-ins-1"},
 				{BaseInfo: entity.BaseInfo{ID: "task-2"}, DagInsID: "dag-ins-2"},
@@ -483,6 +489,40 @@ func TestDefParser_EntryTaskIns(t *testing.T) {
 				},
 			},
 		},
+		{
+			caseDesc:       "test queue full",
+			giveParser:     &DefParser{},
+			giveWorkerNum:  1,
+			giveWorkerCost: 10 * time.Millisecond,
+			giveTaskIns: []*entity.TaskInstance{
+				{BaseInfo: entity.BaseInfo{ID: "task-1"}, DagInsID: "dag-ins-1"},
+				{BaseInfo: entity.BaseInfo{ID: "task-2"}, DagInsID: "dag-ins-2"},
+				{BaseInfo: entity.BaseInfo{ID: "task-3"}, DagInsID: "dag-ins-3"},
+			},
+			wantTaskMap: map[int][]*entity.TaskInstance{
+				0: {
+					{BaseInfo: entity.BaseInfo{ID: "task-1"}, DagInsID: "dag-ins-1"},
+					{BaseInfo: entity.BaseInfo{ID: "task-2"}, DagInsID: "dag-ins-2"},
+					{BaseInfo: entity.BaseInfo{ID: "task-3"}, DagInsID: "dag-ins-3"},
+				},
+			},
+		},
+		{
+			caseDesc:       "test queue close",
+			giveParser:     &DefParser{},
+			giveWorkerNum:  1,
+			closeWhenTasks: 1,
+			giveTaskIns: []*entity.TaskInstance{
+				{BaseInfo: entity.BaseInfo{ID: "task-1"}, DagInsID: "dag-ins-1"},
+				{BaseInfo: entity.BaseInfo{ID: "task-2"}, DagInsID: "dag-ins-2"},
+				{BaseInfo: entity.BaseInfo{ID: "task-3"}, DagInsID: "dag-ins-3"},
+			},
+			wantTaskMap: map[int][]*entity.TaskInstance{
+				0: {
+					{BaseInfo: entity.BaseInfo{ID: "task-1"}, DagInsID: "dag-ins-1"},
+				},
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -490,27 +530,33 @@ func TestDefParser_EntryTaskIns(t *testing.T) {
 			mutex := sync.Mutex{}
 			ret := map[int][]*entity.TaskInstance{}
 			tc.giveParser.closeCh = make(chan struct{})
-			tc.giveParser.workerNumber = 6
+			tc.giveParser.workerNumber = tc.giveWorkerNum
 			for i := 0; i < tc.giveParser.workerNumber; i++ {
-				q := make(chan *entity.TaskInstance)
+				// if you make a block channel, will cause select failed
+				q := make(chan *entity.TaskInstance, 1)
 				tc.giveParser.workerQueue = append(tc.giveParser.workerQueue, q)
 				tc.giveParser.workerWg.Add(1)
 				go func(idx int, queue <-chan *entity.TaskInstance) {
 					for task := range queue {
+						if tc.giveWorkerCost > 0 {
+							time.Sleep(tc.giveWorkerCost)
+						}
 						mutex.Lock()
 						ret[idx] = append(ret[idx], task)
 						mutex.Unlock()
 					}
 					tc.giveParser.workerWg.Done()
-
 				}(i, q)
 			}
 
-			for _, task := range tc.giveTaskIns {
+			for idx, task := range tc.giveTaskIns {
+				if tc.closeWhenTasks > 0 && idx >= tc.closeWhenTasks {
+					tc.giveParser.Close()
+				}
 				tc.giveParser.EntryTaskIns(task)
 			}
 
-			time.Sleep(100 * time.Microsecond)
+			time.Sleep(time.Millisecond * 500)
 			tc.giveParser.Close()
 			for key := range tc.wantTaskMap {
 				assert.ElementsMatch(t, tc.wantTaskMap[key], ret[key])
@@ -614,7 +660,7 @@ func TestDefParser_InitialDagIns(t *testing.T) {
 			wantErrorLog:    true,
 		},
 		{
-			caseDesc:   "build tree faild",
+			caseDesc:   "build tree failed",
 			giveParser: &DefParser{},
 			giveDagIns: &entity.DagInstance{BaseInfo: entity.BaseInfo{ID: "test-dag"}},
 			giveTaskIns: []*entity.TaskInstance{

@@ -458,6 +458,12 @@ func (p *DefParser) Close() {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
+	select {
+	case <-p.closeCh:
+		log.Info("parser has already closed")
+		return
+	default:
+	}
 	close(p.closeCh)
 	for i := range p.workerQueue {
 		close(p.workerQueue[i])
