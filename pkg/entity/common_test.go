@@ -1,9 +1,10 @@
 package entity
 
 import (
+	"testing"
+
 	"github.com/shiningrush/fastflow/store"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestBaseInfo_Initial(t *testing.T) {

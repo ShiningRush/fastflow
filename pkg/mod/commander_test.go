@@ -2,11 +2,12 @@ package mod
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/shiningrush/fastflow/pkg/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
-	"time"
 )
 
 func TestDefCommander_RunDag(t *testing.T) {

@@ -1,8 +1,9 @@
 package store
 
 import (
-	"github.com/sony/sonyflake"
 	"strconv"
+
+	"github.com/sony/sonyflake"
 )
 
 var generator *sonyflake.Sonyflake

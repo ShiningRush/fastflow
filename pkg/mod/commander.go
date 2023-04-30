@@ -3,10 +3,11 @@ package mod
 import (
 	"errors"
 	"fmt"
-	"github.com/shiningrush/fastflow/pkg/entity"
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/shiningrush/fastflow/pkg/entity"
 )
 
 // DefCommander used to execute command

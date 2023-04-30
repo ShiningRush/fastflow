@@ -2,10 +2,11 @@ package mod
 
 import (
 	"fmt"
-	"github.com/shiningrush/fastflow/pkg/entity"
-	"github.com/shiningrush/fastflow/pkg/log"
 	"sync"
 	"time"
+
+	"github.com/shiningrush/fastflow/pkg/entity"
+	"github.com/shiningrush/fastflow/pkg/log"
 )
 
 const DefFailedReason = "force failed by watch dog because it execute too long"

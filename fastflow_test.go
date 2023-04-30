@@ -2,14 +2,15 @@ package fastflow
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/shiningrush/fastflow/pkg/entity"
 	"github.com/shiningrush/fastflow/pkg/mod"
 	"github.com/shiningrush/fastflow/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gopkg.in/yaml.v3"
-	"testing"
-	"time"
 )
 
 func Test_checkOption(t *testing.T) {
