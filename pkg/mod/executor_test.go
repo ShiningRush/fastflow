@@ -180,6 +180,12 @@ func TestDefExecutor_initWorkerTask(t *testing.T) {
 			assert.True(t, ok)
 			assert.Equal(t, tc.giveDagIns.ShareData, tc.giveTask.Context.ShareData())
 
+			// check ctx running infos
+			ctxTask, ok := entity.CtxRunningTaskIns(tc.giveTask.Context.Context())
+			assert.True(t, ok)
+			assert.Equal(t, tc.giveTask, ctxTask)
+			assert.Equal(t, tc.giveDagIns, ctxTask.RelatedDagInstance)
+
 			// check trace infos
 			tc.giveTask.Context.Tracef("test-tracef-%d", 1, tc.giveTraceOpt)
 			tc.giveTask.Context.Tracef("test-tracef-%s", "2", tc.giveTraceOpt)
