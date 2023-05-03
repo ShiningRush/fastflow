@@ -108,6 +108,7 @@ func (e *DefExecutor) initWorkerTask(dagIns *entity.DagInstance, taskIns *entity
 	dagIns.ShareData.Save = func(data *entity.ShareData) error {
 		return GetStore().PatchDagIns(&entity.DagInstance{BaseInfo: entity.BaseInfo{ID: taskIns.DagInsID}, ShareData: data})
 	}
+	c = entity.CtxWithRunningTaskIns(c, taskIns)
 	taskIns.InitialDep(
 		run.NewDefExecuteContext(c, dagIns.ShareData, taskIns.Trace, dagIns.VarsGetter(), dagIns.VarsIterator()),
 		func(instance *entity.TaskInstance) error {

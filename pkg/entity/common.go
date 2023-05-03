@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"context"
 	"time"
 
 	"github.com/shiningrush/fastflow/store"
@@ -35,4 +36,19 @@ func (b *BaseInfo) Update() {
 // BaseInfoGetter
 type BaseInfoGetter interface {
 	GetBaseInfo() *BaseInfo
+}
+
+type CtxKey string
+
+const (
+	CtxKeyRunningTaskIns CtxKey = "running-task"
+)
+
+func CtxWithRunningTaskIns(ctx context.Context, task *TaskInstance) context.Context {
+	return context.WithValue(ctx, CtxKeyRunningTaskIns, task)
+}
+
+func CtxRunningTaskIns(ctx context.Context) (*TaskInstance, bool) {
+	ins, ok := ctx.Value(CtxKeyRunningTaskIns).(*TaskInstance)
+	return ins, ok
 }
