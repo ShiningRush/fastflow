@@ -8,6 +8,7 @@ import (
 
 var defLog Logger = &StdoutLogger{}
 
+// todo: set logger when used to production
 // SetLogger for testing
 func SetLogger(log Logger) {
 	defLog = log

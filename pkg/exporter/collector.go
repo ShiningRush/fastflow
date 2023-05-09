@@ -188,9 +188,12 @@ func (c *LeaderCollector) Collect(ch chan<- prometheus.Metric) {
 	)
 }
 
+// todo: just add metrics, register used by existed http server
 // HttpHandler used to handle metrics request
 // you can use it like that
-//   http.Handle("/metrics", exporter.HttpHandler)
+//
+//	http.Handle("/metrics", exporter.HttpHandler)
+//
 // because it depend on Keeper, so you should call this function after keeper start
 func HttpHandler() http.Handler {
 	execCollector := &ExecutorCollector{}
