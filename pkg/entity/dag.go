@@ -1,7 +1,6 @@
 package entity
 
 import (
-	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -25,24 +24,12 @@ type Dag struct {
 	Name     string    `yaml:"name,omitempty" json:"name,omitempty" bson:"name,omitempty" gorm:"type:VARCHAR(128);not null"`
 	Desc     string    `yaml:"desc,omitempty" json:"desc,omitempty" bson:"desc,omitempty" gorm:"type:VARCHAR(256);not null"`
 	Cron     string    `yaml:"cron,omitempty" json:"cron,omitempty" bson:"cron,omitempty" gorm:"-"`
-	Vars     DagVars   `yaml:"vars,omitempty" json:"vars,omitempty" bson:"vars,omitempty" gorm:"type:JSON"`
+	Vars     DagVars   `yaml:"vars,omitempty" json:"vars,omitempty" bson:"vars,omitempty" gorm:"type:TEXT;serializer:json"`
 	Status   DagStatus `yaml:"status,omitempty" json:"status,omitempty" bson:"status,omitempty" gorm:"type:enum('normal', 'stopped');not null;"`
-	Tasks    DagTasks  `yaml:"tasks,omitempty" json:"tasks,omitempty" bson:"tasks,omitempty" gorm:"type:JSON;not null;"`
+	Tasks    DagTasks  `yaml:"tasks,omitempty" json:"tasks,omitempty" bson:"tasks,omitempty" gorm:"type:TEXT;not null;serializer:json"`
 }
 
 type DagTasks []Task
-
-func (b *DagTasks) Value() (driver.Value, error) {
-	settingBytes, err := json.Marshal(b)
-	if err != nil {
-		return nil, err
-	}
-	return string(settingBytes), nil
-}
-
-func (b *DagTasks) Scan(input interface{}) error {
-	return json.Unmarshal(input.([]byte), b)
-}
 
 // SpecifiedVar
 type SpecifiedVar struct {
@@ -78,18 +65,6 @@ func (d *Dag) Run(trigger Trigger, specVars map[string]string) (*DagInstance, er
 
 type DagVars map[string]DagVar
 
-func (b *DagVars) Value() (driver.Value, error) {
-	settingBytes, err := json.Marshal(b)
-	if err != nil {
-		return nil, err
-	}
-	return string(settingBytes), nil
-}
-
-func (b *DagVars) Scan(input interface{}) error {
-	return json.Unmarshal(input.([]byte), b)
-}
-
 // DagVar
 type DagVar struct {
 	Desc         string `yaml:"desc,omitempty" json:"desc,omitempty" bson:"desc,omitempty"`
@@ -115,11 +90,11 @@ type DagInstance struct {
 	DagID     string            `json:"dagId,omitempty" bson:"dagId,omitempty" gorm:"type:VARCHAR(256);not null"`
 	Trigger   Trigger           `json:"trigger,omitempty" bson:"trigger,omitempty" gorm:"type:enum('manually', 'cron');not null;"`
 	Worker    string            `json:"worker,omitempty" bson:"worker,omitempty" gorm:"type:VARCHAR(256)"`
-	Vars      DagInstanceVars   `json:"vars,omitempty" bson:"vars,omitempty" gorm:"type:JSON"`
-	ShareData *ShareData        `json:"shareData,omitempty" bson:"shareData,omitempty" gorm:"type:JSON"`
+	Vars      DagInstanceVars   `json:"vars,omitempty" bson:"vars,omitempty" gorm:"type:TEXT;serializer:json"`
+	ShareData *ShareData        `json:"shareData,omitempty" bson:"shareData,omitempty" gorm:"type:TEXT;serializer:json"`
 	Status    DagInstanceStatus `json:"status,omitempty" bson:"status,omitempty" gorm:"type:enum('init', 'scheduled', 'running', 'blocked', 'failed', 'success');index;not null;"`
 	Reason    string            `json:"reason,omitempty" bson:"reason,omitempty" gorm:"type:TEXT"`
-	Cmd       *Command          `json:"cmd,omitempty" bson:"cmd,omitempty" gorm:"type:JSON"`
+	Cmd       *Command          `json:"cmd,omitempty" bson:"cmd,omitempty" gorm:"type:TEXT;serializer:json"`
 }
 
 var (
@@ -132,24 +107,9 @@ var (
 // ExecuteContext's Context
 type ShareData struct {
 	Dict map[string]string
-	Save func(data *ShareData) error
+	Save func(data *ShareData) error `json:"-" bson:"-"`
 
-	mutex sync.Mutex
-}
-
-func (d *ShareData) Value() (driver.Value, error) {
-	settingBytes, err := json.Marshal(d.Dict)
-	if err != nil {
-		return nil, err
-	}
-	return string(settingBytes), nil
-}
-
-func (d *ShareData) Scan(input interface{}) error {
-	if d.Dict == nil {
-		d.Dict = make(map[string]string)
-	}
-	return json.Unmarshal(input.([]byte), &d.Dict)
+	mutex sync.Mutex `json:"-" bson:"-"`
 }
 
 // MarshalBSON used by mongo
@@ -208,18 +168,6 @@ func (d *ShareData) Set(key string, val string) {
 
 // DagInstanceVars
 type DagInstanceVars map[string]DagInstanceVar
-
-func (vars *DagInstanceVars) Value() (driver.Value, error) {
-	settingBytes, err := json.Marshal(vars)
-	if err != nil {
-		return nil, err
-	}
-	return string(settingBytes), nil
-}
-
-func (vars *DagInstanceVars) Scan(input interface{}) error {
-	return json.Unmarshal(input.([]byte), vars)
-}
 
 // Cancel a task, it is just set a command, command will execute by Parser
 func (dagIns *DagInstance) Cancel(taskInsIds []string) error {
@@ -338,18 +286,6 @@ func (vars *DagInstanceVars) Render(p map[string]interface{}) (map[string]interf
 type Command struct {
 	Name             CommandName
 	TargetTaskInsIDs []string
-}
-
-func (b *Command) Value() (driver.Value, error) {
-	settingBytes, err := json.Marshal(b)
-	if err != nil {
-		return nil, err
-	}
-	return string(settingBytes), nil
-}
-
-func (b *Command) Scan(input interface{}) error {
-	return json.Unmarshal(input.([]byte), b)
 }
 
 // CommandName
