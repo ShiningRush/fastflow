@@ -10,7 +10,6 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/shiningrush/fastflow"
 	mysqlKeeper "github.com/shiningrush/fastflow/keeper/mysql"
-
 	"github.com/shiningrush/fastflow/pkg/entity"
 	"github.com/shiningrush/fastflow/pkg/entity/run"
 	"github.com/shiningrush/fastflow/pkg/exporter"
@@ -156,7 +155,7 @@ func main() {
 		return
 	}
 	// run dag interval
-	//go runInstance()
+	go runInstance()
 
 	// listen a http endpoint to serve metrics
 	if err := http.ListenAndServe(":9090", exporter.HttpHandler()); err != nil {

@@ -3,19 +3,19 @@ package mysql
 import (
 	"context"
 	"fmt"
-	"github.com/go-sql-driver/mysql"
-	"github.com/shiningrush/fastflow/keeper"
-	gormDriver "gorm.io/driver/mysql"
-	"gorm.io/gorm"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/go-sql-driver/mysql"
+	"github.com/shiningrush/fastflow/keeper"
 	"github.com/shiningrush/fastflow/pkg/event"
 	"github.com/shiningrush/fastflow/pkg/log"
 	"github.com/shiningrush/fastflow/pkg/mod"
 	"github.com/shiningrush/fastflow/store"
 	"github.com/shiningrush/goevent"
+	gormDriver "gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
 const LeaderKey = "leader"
@@ -287,7 +287,6 @@ func (k *Keeper) campaign() error {
 			election := &Election{
 				ID:        LeaderKey,
 				WorkerKey: k.WorkerKey(),
-				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
 			}
 			return tx.Create(election).Error

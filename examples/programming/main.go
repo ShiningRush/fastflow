@@ -37,7 +37,7 @@ func main() {
 	keeper := mongoKeeper.NewKeeper(&mongoKeeper.KeeperOption{
 		Key: "worker-1",
 		// if your mongo does not set user/pwd, you should remove it
-		ConnStr:  "mongodb://127.0.0.1:27017/fastflow?authSource=admin",
+		ConnStr:  "mongodb://root:pwd@127.0.0.1:27017/fastflow?authSource=admin",
 		Database: "mongo-demo",
 		Prefix:   "test",
 	})
@@ -48,7 +48,7 @@ func main() {
 	// init store
 	st := mongoStore.NewStore(&mongoStore.StoreOption{
 		// if your mongo does not set user/pwd, you should remove it
-		ConnStr:  "mongodb://127.0.0.1:27017/fastflow?authSource=admin",
+		ConnStr:  "mongodb://root:pwd@127.0.0.1:27017/fastflow?authSource=admin",
 		Database: "mongo-demo",
 		Prefix:   "test",
 	})
