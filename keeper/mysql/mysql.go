@@ -153,7 +153,7 @@ func (k *Keeper) transaction(cb func(tx *gorm.DB) error) error {
 func (k *Keeper) IsAlive(workerKey string) (bool, error) {
 	heartbeat := &Heartbeat{}
 	err := k.transaction(func(tx *gorm.DB) error {
-		return tx.Where("id", workerKey).
+		return tx.Where("worker_key", workerKey).
 			Where("updated_at > ?", time.Now().Add(-1*k.opt.UnhealthyTime)).
 			Find(heartbeat).Error
 	})
