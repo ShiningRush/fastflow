@@ -24,9 +24,9 @@ type Dag struct {
 	Name     string    `yaml:"name,omitempty" json:"name,omitempty" bson:"name,omitempty" gorm:"type:VARCHAR(128);not null"`
 	Desc     string    `yaml:"desc,omitempty" json:"desc,omitempty" bson:"desc,omitempty" gorm:"type:VARCHAR(256);not null"`
 	Cron     string    `yaml:"cron,omitempty" json:"cron,omitempty" bson:"cron,omitempty" gorm:"-"`
-	Vars     DagVars   `yaml:"vars,omitempty" json:"vars,omitempty" bson:"vars,omitempty" gorm:"type:TEXT;serializer:json"`
+	Vars     DagVars   `yaml:"vars,omitempty" json:"vars,omitempty" bson:"vars,omitempty" gorm:"type:JSON;serializer:json"`
 	Status   DagStatus `yaml:"status,omitempty" json:"status,omitempty" bson:"status,omitempty" gorm:"type:enum('normal', 'stopped');not null;"`
-	Tasks    DagTasks  `yaml:"tasks,omitempty" json:"tasks,omitempty" bson:"tasks,omitempty" gorm:"type:TEXT;not null;serializer:json"`
+	Tasks    DagTasks  `yaml:"tasks,omitempty" json:"tasks,omitempty" bson:"tasks,omitempty" gorm:"type:JSON;not null;serializer:json"`
 }
 
 type DagTasks []Task
@@ -90,11 +90,11 @@ type DagInstance struct {
 	DagID     string            `json:"dagId,omitempty" bson:"dagId,omitempty" gorm:"type:VARCHAR(256);not null"`
 	Trigger   Trigger           `json:"trigger,omitempty" bson:"trigger,omitempty" gorm:"type:enum('manually', 'cron');not null;"`
 	Worker    string            `json:"worker,omitempty" bson:"worker,omitempty" gorm:"type:VARCHAR(256)"`
-	Vars      DagInstanceVars   `json:"vars,omitempty" bson:"vars,omitempty" gorm:"type:TEXT;serializer:json"`
-	ShareData *ShareData        `json:"shareData,omitempty" bson:"shareData,omitempty" gorm:"type:TEXT;serializer:json"`
+	Vars      DagInstanceVars   `json:"vars,omitempty" bson:"vars,omitempty" gorm:"type:JSON;serializer:json"`
+	ShareData *ShareData        `json:"shareData,omitempty" bson:"shareData,omitempty" gorm:"type:JSON;serializer:json"`
 	Status    DagInstanceStatus `json:"status,omitempty" bson:"status,omitempty" gorm:"type:enum('init', 'scheduled', 'running', 'blocked', 'failed', 'success');index;not null;"`
 	Reason    string            `json:"reason,omitempty" bson:"reason,omitempty" gorm:"type:TEXT"`
-	Cmd       *Command          `json:"cmd,omitempty" bson:"cmd,omitempty" gorm:"type:TEXT;serializer:json"`
+	Cmd       *Command          `json:"cmd,omitempty" bson:"cmd,omitempty" gorm:"type:JSON;serializer:json"`
 }
 
 var (
@@ -107,9 +107,9 @@ var (
 // ExecuteContext's Context
 type ShareData struct {
 	Dict map[string]string
-	Save func(data *ShareData) error `json:"-" bson:"-"`
+	Save func(data *ShareData) error
 
-	mutex sync.Mutex `json:"-" bson:"-"`
+	mutex sync.Mutex
 }
 
 // MarshalBSON used by mongo
@@ -271,9 +271,9 @@ func (dagIns *DagInstance) CanModifyStatus() bool {
 }
 
 // Render variables
-func (vars *DagInstanceVars) Render(p map[string]interface{}) (map[string]interface{}, error) {
+func (vars DagInstanceVars) Render(p map[string]interface{}) (map[string]interface{}, error) {
 	err := value.MapValue(p).WalkString(func(walkContext *value.WalkContext, s string) error {
-		for varKey, varValue := range *vars {
+		for varKey, varValue := range vars {
 			s = strings.ReplaceAll(s, fmt.Sprintf("{{%s}}", varKey), varValue.Value)
 		}
 		walkContext.Setter(s)

@@ -718,7 +718,7 @@ func TestDefExecutor_renderParams(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr assert.ErrorAssertionFunc
-		want    entity.TaskInstanceParams
+		want    map[string]interface{}
 	}{
 		{
 			name: "success",
@@ -737,7 +737,7 @@ func TestDefExecutor_renderParams(t *testing.T) {
 					},
 				},
 			},
-			want: entity.TaskInstanceParams{
+			want: map[string]interface{}{
 				"a": "skb",
 				"b": "va",
 				"c": map[string]interface{}{
@@ -764,7 +764,7 @@ func TestDefExecutor_renderParams(t *testing.T) {
 				},
 			},
 			wantErr: assert.Error,
-			want: entity.TaskInstanceParams{
+			want: map[string]interface{}{
 				"c": map[string]interface{}{
 					"d": map[string]interface{}{
 						"e": "{{.as.as.as}}",
@@ -789,7 +789,7 @@ func TestDefExecutor_renderParams(t *testing.T) {
 				},
 			},
 			wantErr: assert.Error,
-			want: entity.TaskInstanceParams{
+			want: map[string]interface{}{
 				"c": map[string]interface{}{
 					"d": map[string]interface{}{
 						"e": "{{hhh}}",

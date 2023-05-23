@@ -188,7 +188,6 @@ func (c *LeaderCollector) Collect(ch chan<- prometheus.Metric) {
 	)
 }
 
-// todo: just add metrics, register used by existed http server
 // HttpHandler used to handle metrics request
 // you can use it like that
 //

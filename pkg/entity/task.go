@@ -137,28 +137,22 @@ type TaskInstance struct {
 	TaskID      string                 `json:"taskId,omitempty" bson:"taskId,omitempty" gorm:"type:VARCHAR(256);not null"`
 	DagInsID    string                 `json:"dagInsId,omitempty" bson:"dagInsId,omitempty" gorm:"type:VARCHAR(256);not null;index"`
 	Name        string                 `json:"name,omitempty" bson:"name,omitempty" gorm:"-"`
-	DependOn    TaskInstanceDependOn   `json:"dependOn,omitempty" bson:"dependOn,omitempty" gorm:"type:TEXT;serializer:json"`
+	DependOn    []string               `json:"dependOn,omitempty" bson:"dependOn,omitempty" gorm:"type:JSON;serializer:json"`
 	ActionName  string                 `json:"actionName,omitempty" bson:"actionName,omitempty" gorm:"type:VARCHAR(256);not null"`
 	TimeoutSecs int                    `json:"timeoutSecs" bson:"timeoutSecs" gorm:"type:bigint(20) unsigned"`
-	Params      TaskInstanceParams     `json:"params,omitempty" bson:"params,omitempty" gorm:"type:TEXT;serializer:json"`
-	Traces      TaskInstanceTraceInfos `json:"traces,omitempty" bson:"traces,omitempty" gorm:"type:TEXT;serializer:json"`
+	Params      map[string]interface{} `json:"params,omitempty" bson:"params,omitempty" gorm:"type:JSON;serializer:json"`
+	Traces      []TraceInfo            `json:"traces,omitempty" bson:"traces,omitempty" gorm:"type:JSON;serializer:json"`
 	Status      TaskInstanceStatus     `json:"status,omitempty" bson:"status,omitempty" gorm:"type:enum('init', 'canceled', 'running', 'ending', 'failed', 'retrying', 'success', 'blocked', 'skipped');index;not null;"`
 	Reason      string                 `json:"reason,omitempty" bson:"reason,omitempty" gorm:"type:TEXT"`
-	PreChecks   PreChecks              `json:"preChecks,omitempty"  bson:"preChecks,omitempty" gorm:"type:TEXT;serializer:json"`
+	PreChecks   PreChecks              `json:"preChecks,omitempty"  bson:"preChecks,omitempty" gorm:"type:JSON;serializer:json"`
 	// used to save changes
 	Patch              func(*TaskInstance) error `json:"-" bson:"-" gorm:"-"`
 	Context            run.ExecuteContext        `json:"-" bson:"-" gorm:"-"`
 	RelatedDagInstance *DagInstance              `json:"-" bson:"-" gorm:"-"`
 
 	// it used to buffer traces, and persist when status changed
-	bufTraces TaskInstanceTraceInfos `gorm:"-"`
+	bufTraces []TraceInfo `gorm:"-"`
 }
-
-type TaskInstanceTraceInfos []TraceInfo
-
-type TaskInstanceParams map[string]interface{}
-
-type TaskInstanceDependOn []string
 
 // TraceInfo
 type TraceInfo struct {

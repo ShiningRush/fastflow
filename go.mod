@@ -3,7 +3,7 @@ module github.com/shiningrush/fastflow
 go 1.20
 
 require (
-	github.com/go-sql-driver/mysql v1.7.1
+	github.com/go-sql-driver/mysql v1.7.0
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 	github.com/golang/mock v1.6.0
 	github.com/mitchellh/mapstructure v1.1.2
