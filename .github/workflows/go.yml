@@ -21,6 +21,13 @@ jobs:
     - name: Build
       run: go build -v ./...
 
+    - name: Start MongoDB
+      uses: supercharge/mongodb-github-action@1.8.0
+      with:
+        mongodb-version: 4.2
+        mongodb-username: root
+        mongodb-password: pwd
+
     - name: Test
       run: go test -coverprofile coverage.txt -covermode=atomic -v ./... 
       
