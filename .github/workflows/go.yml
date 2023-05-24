@@ -27,6 +27,7 @@ jobs:
         mongodb-version: 4.2
         mongodb-username: root
         mongodb-password: pwd
+        mongodb-port: 27017
 
     - name: Shutdown Ubuntu MySQL (SUDO)
       run: sudo service mysql stop # Shutdown the Default MySQL, "sudo" is necessary, please not remove it
