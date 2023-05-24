@@ -122,7 +122,7 @@ func initWorker(t *testing.T, key string) *Keeper {
 		InitFlakeGeneratorSwitch: boolToPointer(false),
 	})
 	err := w.Init()
-	time.Sleep(1 * time.Second)
+	time.Sleep(5 * time.Second)
 	assert.NoError(t, err)
 	return w
 }
