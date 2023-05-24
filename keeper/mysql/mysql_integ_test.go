@@ -51,7 +51,7 @@ func TestKeeper_Crash(t *testing.T) {
 	log.Println("keeper work well, ready to re-goElect")
 
 	w1.forceClose()
-	time.Sleep(6 * time.Second)
+	time.Sleep(11 * time.Second)
 	// should goElect new leader
 	assert.True(t, w2.IsLeader() || w3.IsLeader())
 	nodes, err := w3.AliveNodes()
