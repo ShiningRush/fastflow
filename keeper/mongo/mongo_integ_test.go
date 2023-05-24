@@ -6,6 +6,7 @@ package mongo
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"sync"
 	"testing"
 	"time"
