@@ -1,5 +1,5 @@
-//go:build integrationignore
-// +build integrationignore
+//go:build integration
+// +build integration
 
 package mongo
 

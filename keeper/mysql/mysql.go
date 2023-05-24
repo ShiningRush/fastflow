@@ -49,6 +49,9 @@ type KeeperOption struct {
 	Timeout time.Duration
 
 	MigrationSwitch bool
+
+	// InitFlakeGeneratorSwitch, if null or true, will init flake generator, false just for ut
+	InitFlakeGeneratorSwitch *bool
 }
 
 type ConnectionPoolOption struct {
@@ -72,7 +75,9 @@ func (k *Keeper) Init() error {
 	if err := k.readOpt(); err != nil {
 		return err
 	}
-	store.InitFlakeGenerator(uint16(k.WorkerNumber()))
+	if k.opt.InitFlakeGeneratorSwitch == nil || *k.opt.InitFlakeGeneratorSwitch {
+		store.InitFlakeGenerator(uint16(k.WorkerNumber()))
+	}
 
 	db, err := gorm.Open(gormDriver.Open(k.opt.MySQLConfig.FormatDSN()), k.opt.GormConfig)
 	if err != nil {

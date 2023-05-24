@@ -54,6 +54,9 @@ type KeeperOption struct {
 	UnhealthyTime time.Duration
 	// Timeout default 2s
 	Timeout time.Duration
+
+	// InitFlakeGeneratorSwitch, if null or true, will init flake generator, false just for ut
+	InitFlakeGeneratorSwitch *bool
 }
 
 // NewKeeper
@@ -71,7 +74,9 @@ func (k *Keeper) Init() error {
 	if err := k.readOpt(); err != nil {
 		return err
 	}
-	store.InitFlakeGenerator(uint16(k.WorkerNumber()))
+	if k.opt.InitFlakeGeneratorSwitch == nil || *k.opt.InitFlakeGeneratorSwitch {
+		store.InitFlakeGenerator(uint16(k.WorkerNumber()))
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), k.opt.Timeout)
 	defer cancel()
