@@ -30,7 +30,7 @@ type Keeper struct {
 
 	wg            sync.WaitGroup
 	firstInitWg   sync.WaitGroup
-	initCompleted bool
+	initCompleted atomic.Value
 	closeCh       chan struct{}
 }
 
@@ -67,6 +67,7 @@ func NewKeeper(opt *KeeperOption) *Keeper {
 		closeCh: make(chan struct{}),
 	}
 	k.leaderFlag.Store(false)
+	k.initCompleted.Store(false)
 	return k
 }
 
@@ -109,7 +110,7 @@ func (k *Keeper) Init() error {
 	go k.goHeartBeat()
 
 	k.firstInitWg.Wait()
-	k.initCompleted = true
+	k.initCompleted.Store(true)
 	return nil
 }
 
@@ -251,7 +252,7 @@ func (k *Keeper) elect() {
 		}
 	}
 
-	if !k.initCompleted {
+	if !k.initCompleted.Load().(bool) {
 		k.firstInitWg.Done()
 	}
 }
@@ -267,7 +268,7 @@ func (k *Keeper) campaign() error {
 			return nil
 		}
 		if election.UpdatedAt.Before(time.Now().Add(-1 * k.opt.UnhealthyTime)) {
-			err := k.transaction(func(tx *gorm.DB) error {
+			return k.transaction(func(tx *gorm.DB) error {
 				election.WorkerKey = k.WorkerKey()
 				election.UpdatedAt = time.Now()
 				update := tx.Save(election)
@@ -280,9 +281,6 @@ func (k *Keeper) campaign() error {
 				}
 				return nil
 			})
-			if err != nil {
-				return err
-			}
 		}
 		return nil
 	}
@@ -339,7 +337,7 @@ func (k *Keeper) goHeartBeat() {
 				continue
 			}
 		}
-		if !k.initCompleted {
+		if !k.initCompleted.Load().(bool) {
 			k.firstInitWg.Done()
 		}
 	}
