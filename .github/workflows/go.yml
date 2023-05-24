@@ -47,3 +47,11 @@ jobs:
       uses: codecov/codecov-action@v2
       with:
         file: ./coverage.txt
+
+    - name: Integration Test
+      run: go test -race -coverprofile=integration-coverage.out ./... -tags=integration
+
+    - name: Upload Coverage report to CodeCov
+      uses: codecov/codecov-action@v2
+      with:
+        file: ./integration-coverage.out
