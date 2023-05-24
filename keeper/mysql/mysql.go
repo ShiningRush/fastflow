@@ -20,7 +20,7 @@ import (
 
 const LeaderKey = "leader"
 
-// Keeper mongo implement
+// Keeper mysql implement
 type Keeper struct {
 	opt    *KeeperOption
 	gormDB *gorm.DB
@@ -196,7 +196,7 @@ func (k *Keeper) Close() {
 	}
 
 	err := k.transaction(func(tx *gorm.DB) error {
-		return tx.Delete(&Heartbeat{}, "id = ?", k.WorkerKey()).Error
+		return tx.Delete(&Heartbeat{}, "worker_key = ?", k.WorkerKey()).Error
 	})
 	if err != nil {
 		log.Errorf("deregister heart beat failed: %s", err)

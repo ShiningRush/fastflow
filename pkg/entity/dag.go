@@ -22,7 +22,7 @@ func NewDag() *Dag {
 type Dag struct {
 	BaseInfo `yaml:",inline" json:",inline" bson:"inline"`
 	Name     string    `yaml:"name,omitempty" json:"name,omitempty" bson:"name,omitempty" gorm:"type:VARCHAR(128);not null"`
-	Desc     string    `yaml:"desc,omitempty" json:"desc,omitempty" bson:"desc,omitempty" gorm:"type:VARCHAR(256);not null"`
+	Desc     string    `yaml:"desc,omitempty" json:"desc,omitempty" bson:"desc,omitempty" gorm:"type:VARCHAR(256);"`
 	Cron     string    `yaml:"cron,omitempty" json:"cron,omitempty" bson:"cron,omitempty" gorm:"-"`
 	Vars     DagVars   `yaml:"vars,omitempty" json:"vars,omitempty" bson:"vars,omitempty" gorm:"type:JSON;serializer:json"`
 	Status   DagStatus `yaml:"status,omitempty" json:"status,omitempty" bson:"status,omitempty" gorm:"type:enum('normal', 'stopped');not null;"`

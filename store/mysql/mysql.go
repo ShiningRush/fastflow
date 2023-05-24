@@ -391,6 +391,55 @@ func (s *Store) ListTaskInstance(input *mod.ListTaskInstanceInput) ([]*entity.Ta
 	return ret, nil
 }
 
+// ListDag
+func (s *Store) ListDag(input *mod.ListDagInput) ([]*entity.Dag, error) {
+	var ret []*entity.Dag
+	err := s.transaction(func(tx *gorm.DB) error {
+		return tx.Find(&ret).Error
+	})
+	if err != nil {
+		log.Errorf("list dag input: %v, failed: %s", input, err)
+		return nil, err
+	}
+	return ret, nil
+}
+
+// BatchDeleteDag
+func (s *Store) BatchDeleteDag(ids []string) error {
+	err := s.transaction(func(tx *gorm.DB) error {
+		return tx.Delete(&entity.Dag{}, "id in (?)", ids).Error
+	})
+	if err != nil {
+		log.Errorf("delete dag input: %v, failed: %s", ids, err)
+		return err
+	}
+	return nil
+}
+
+// BatchDeleteDagIns
+func (s *Store) BatchDeleteDagIns(ids []string) error {
+	err := s.transaction(func(tx *gorm.DB) error {
+		return tx.Delete(&entity.DagInstance{}, "id in (?)", ids).Error
+	})
+	if err != nil {
+		log.Errorf("delete dag instance input: %v, failed: %s", ids, err)
+		return err
+	}
+	return nil
+}
+
+// BatchDeleteTaskIns
+func (s *Store) BatchDeleteTaskIns(ids []string) error {
+	err := s.transaction(func(tx *gorm.DB) error {
+		return tx.Delete(&entity.TaskInstance{}, "id in (?)", ids).Error
+	})
+	if err != nil {
+		log.Errorf("delete task instance input: %v, failed: %s", ids, err)
+		return err
+	}
+	return nil
+}
+
 func (s *Store) Marshal(obj interface{}) ([]byte, error) {
 	return json.Marshal(obj)
 }
