@@ -57,7 +57,7 @@ func TestKeeper_Crash(t *testing.T) {
 	w3.Close()
 }
 
-func IngoreTestKeeper_Concurrency(t *testing.T) {
+func IgnoreTestKeeper_Concurrency(t *testing.T) {
 	wg := sync.WaitGroup{}
 	stsCh := make(chan struct {
 		isLeader   bool
