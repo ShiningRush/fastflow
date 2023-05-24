@@ -132,11 +132,15 @@ func initWorker(t *testing.T, key string) *Keeper {
 			DBName: "fastflow",
 		},
 		MigrationSwitch:          true,
-		InitFlakeGeneratorSwitch: false,
+		InitFlakeGeneratorSwitch: boolToPointer(false),
 	})
 	err := w.Init()
 	assert.NoError(t, err)
 	return w
+}
+
+func boolToPointer(b bool) *bool {
+	return &b
 }
 
 func initSanityWorker(t *testing.T) (w1, w2, w3 *Keeper) {
