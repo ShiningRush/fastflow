@@ -83,7 +83,7 @@ func TestKeeper_Concurrency(t *testing.T) {
 	for i := 0; i < curCnt; i++ {
 		wg.Add(1)
 		go func(i int, closeCh chan struct{}) {
-			time.Sleep(num * time.Millisecond)
+			time.Sleep(time.Duration(num) * time.Millisecond)
 			w := initWorker(t, fmt.Sprintf("worker-%d", i))
 			ns, err := w.AliveNodes()
 			assert.NoError(t, err)
