@@ -37,7 +37,7 @@ type Keeper struct {
 
 	wg            sync.WaitGroup
 	firstInitWg   sync.WaitGroup
-	initCompleted bool
+	initCompleted atomic.Value
 	closeCh       chan struct{}
 }
 
@@ -66,6 +66,7 @@ func NewKeeper(opt *KeeperOption) *Keeper {
 		closeCh: make(chan struct{}),
 	}
 	k.leaderFlag.Store(false)
+	k.initCompleted.Store(false)
 	return k
 }
 
@@ -108,7 +109,7 @@ func (k *Keeper) Init() error {
 	go k.goHeartBeat()
 
 	k.firstInitWg.Wait()
-	k.initCompleted = true
+	k.initCompleted.Store(true)
 	return nil
 }
 
@@ -330,7 +331,7 @@ func (k *Keeper) elect() {
 		}
 	}
 
-	if !k.initCompleted {
+	if !k.initCompleted.Load().(bool) {
 		k.firstInitWg.Done()
 	}
 }
@@ -428,7 +429,7 @@ func (k *Keeper) goHeartBeat() {
 				continue
 			}
 		}
-		if !k.initCompleted {
+		if !k.initCompleted.Load().(bool) {
 			k.firstInitWg.Done()
 		}
 	}
