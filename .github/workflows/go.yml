@@ -28,6 +28,19 @@ jobs:
         mongodb-username: root
         mongodb-password: pwd
 
+    - name: Shutdown Ubuntu MySQL (SUDO)
+      run: sudo service mysql stop # Shutdown the Default MySQL, "sudo" is necessary, please not remove it
+
+    - # ... some steps before set-up MySQL ...
+    - name: Set up MySQL
+      uses: mirromutth/mysql-action@v1.1
+      with:
+        host port: 55000 # Optional, default value is 3306. The port of host
+        container port: 55000 # Optional, default value is 3306. The port of container
+        mysql version: '8.0' # Optional, default value is "latest". The version of the MySQL
+        mysql database: 'fastflow' # Optional, default value is "test". The specified database which will be create
+        mysql root password: mysqlpw # Required if "mysql user" is empty, default is empty. The root superuser password
+
     - name: Test
       run: go test -coverprofile coverage.txt -covermode=atomic -v ./... 
       
