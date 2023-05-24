@@ -117,8 +117,9 @@ func TestKeeper_Reconnect(t *testing.T) {
 
 func initWorker(t *testing.T, key string) *Keeper {
 	w := NewKeeper(&KeeperOption{
-		Key:     key,
-		ConnStr: mongoConn,
+		Key:                      key,
+		ConnStr:                  mongoConn,
+		InitFlakeGeneratorSwitch: false,
 	})
 	err := w.Init()
 	assert.NoError(t, err)
