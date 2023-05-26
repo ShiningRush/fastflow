@@ -49,6 +49,7 @@ type KeeperOption struct {
 	Timeout time.Duration
 
 	MigrationSwitch bool
+	WatcherFlag     bool
 
 	// InitFlakeGeneratorSwitch, if null or true, will init flake generator, false just for ut
 	InitFlakeGeneratorSwitch *bool
@@ -101,6 +102,9 @@ func (k *Keeper) Init() error {
 		}
 	}
 	k.gormDB = db
+	if k.opt.WatcherFlag {
+		return nil
+	}
 
 	k.firstInitWg.Add(2)
 
@@ -395,10 +399,10 @@ func (k *Keeper) readPoolConfigOpt() {
 		k.opt.PoolConfig = &ConnectionPoolOption{}
 	}
 	if k.opt.PoolConfig.MaxOpenConns == 0 {
-		k.opt.PoolConfig.MaxOpenConns = 5
+		k.opt.PoolConfig.MaxOpenConns = 10
 	}
 	if k.opt.PoolConfig.MaxIdleConns == 0 {
-		k.opt.PoolConfig.MaxIdleConns = 5
+		k.opt.PoolConfig.MaxIdleConns = 15
 	}
 	if k.opt.PoolConfig.ConnMaxLifetime == 0 {
 		k.opt.PoolConfig.ConnMaxLifetime = time.Minute * 3
