@@ -133,8 +133,10 @@ type ListDagInput struct {
 type ListDagInstanceInput struct {
 	Worker     string
 	DagID      string
+	Ids        []string
 	UpdatedEnd int64
 	Status     []entity.DagInstanceStatus
+	Tags       map[string]string
 	HasCmd     bool
 	Limit      int64
 	Offset     int64

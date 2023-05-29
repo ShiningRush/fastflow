@@ -184,7 +184,7 @@ func runInstance() {
 			panic(err)
 		}
 
-		dagIns.Tags = entity.NewDagInstanceTags(map[string]string{"testKey": "testValue"})
+		dagIns.Tags = entity.NewDagInstanceTags(map[string]string{"testKey": "testValue", "testKey2": "testValue2", "testKey3": "testValue3"})
 
 		err = mod.GetStore().CreateDagIns(dagIns)
 		if err != nil {

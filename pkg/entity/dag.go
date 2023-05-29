@@ -319,10 +319,10 @@ const (
 
 // DagInstanceTag
 type DagInstanceTag struct {
-	BaseInfo      `bson:"inline"`
-	DagInstanceID string `json:"dagInstanceId,omitempty" bson:"dagInstanceId,omitempty" gorm:"type:VARCHAR(256);not null;uniqueIndex:idx_dag_instance_tags_dag_instance_id_key,priority:1"`
-	Key           string `json:"key,omitempty" bson:"key,omitempty" gorm:"type:VARCHAR(256);not null;uniqueIndex:idx_dag_instance_tags_dag_instance_id_key,priority:10"`
-	Value         string `json:"value,omitempty" bson:"value,omitempty" gorm:"type:VARCHAR(256);not null;"`
+	BaseInfo `bson:"inline"`
+	DagInsId string `json:"dagInsId,omitempty" bson:"dagInsId,omitempty" gorm:"type:VARCHAR(256);not null;uniqueIndex:idx_dag_instance_tags_dag_ins_id_key,priority:1"`
+	Key      string `json:"key,omitempty" bson:"key,omitempty" gorm:"type:VARCHAR(256);not null;uniqueIndex:idx_dag_instance_tags_dag_ins_id_key,priority:10;index:idx_dag_instance_tags_key_value,priority:1"`
+	Value    string `json:"value,omitempty" bson:"value,omitempty" gorm:"type:VARCHAR(256);not null;index:idx_dag_instance_tags_key_value,priority:10"`
 }
 
 func NewDagInstanceTags(tags map[string]string) []DagInstanceTag {

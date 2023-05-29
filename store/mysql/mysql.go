@@ -105,10 +105,10 @@ func (s *Store) CreateDagIns(dagIns *entity.DagInstance) error {
 		}
 		for _, tag := range dagIns.Tags {
 			tag.BaseInfo.Initial()
-			tag.DagInstanceID = dagIns.ID
-			err := tx.Create(tag)
+			tag.DagInsId = dagIns.ID
+			err := tx.Create(tag).Error
 			if err != nil {
-				return nil
+				return err
 			}
 		}
 		return nil
@@ -353,10 +353,53 @@ func (s *Store) GetDagInstance(dagInsId string) (*entity.DagInstance, error) {
 }
 
 func (s *Store) ListDagInstance(input *mod.ListDagInstanceInput) ([]*entity.DagInstance, error) {
+	if len(input.Tags) > 0 {
+		return s.ListDagInstanceWithFilterTags(input)
+	}
+	return s.ListDagInstanceWithoutFilterTags(input)
+}
+
+func (s *Store) ListDagInstanceWithFilterTags(input *mod.ListDagInstanceInput) ([]*entity.DagInstance, error) {
+	var ret []*entity.DagInstanceTag
+	err := s.transaction(func(tx *gorm.DB) error {
+		var queryParams [][]interface{}
+		for k, v := range input.Tags {
+			queryParams = append(queryParams, []interface{}{k, v})
+		}
+		return tx.Where("(`key`, `value`) IN ?", queryParams).
+			Select("dag_ins_id, count(*) as total").
+			Group("dag_ins_id").
+			Having("total = ?", len(input.Tags)).
+			Find(&ret).Error
+	})
+	if err != nil {
+		log.Errorf("list dag instance tags input: %v, failed: %s", input, err)
+		return nil, err
+	}
+	var dagInsIds []string
+	for _, v := range ret {
+		dagInsIds = append(dagInsIds, v.DagInsId)
+	}
+	if len(input.Ids) == 0 {
+		input.Ids = dagInsIds
+	} else {
+		input.Ids = IntersectStringSlice(input.Ids, dagInsIds)
+	}
+	if len(input.Ids) == 0 {
+		return nil, nil
+	}
+
+	return s.ListDagInstanceWithoutFilterTags(input)
+}
+
+func (s *Store) ListDagInstanceWithoutFilterTags(input *mod.ListDagInstanceInput) ([]*entity.DagInstance, error) {
 	var ret []*entity.DagInstance
 	err := s.transaction(func(tx *gorm.DB) error {
 		if len(input.Status) > 0 {
 			tx = tx.Where("status in (?)", input.Status)
+		}
+		if len(input.Ids) > 0 {
+			tx = tx.Where("id in (?)", input.Ids)
 		}
 		if input.Worker != "" {
 			tx = tx.Where("worker = ?", input.Worker)
