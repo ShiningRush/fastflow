@@ -96,7 +96,22 @@ func (s *Store) CreateDagIns(dagIns *entity.DagInstance) error {
 		if dagIns.ShareData.Dict == nil {
 			dagIns.ShareData.Dict = map[string]string{}
 		}
-		return tx.Create(dagIns).Error
+		err := tx.Create(dagIns).Error
+		if err != nil {
+			return err
+		}
+		if len(dagIns.Tags) == 0 {
+			return nil
+		}
+		for _, tag := range dagIns.Tags {
+			tag.BaseInfo.Initial()
+			tag.DagInstanceID = dagIns.ID
+			err := tx.Create(tag)
+			if err != nil {
+				return nil
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		return fmt.Errorf("insert dagIns failed: %w", err)
@@ -476,7 +491,7 @@ func (s *Store) Init() error {
 	sqlDB.SetMaxOpenConns(s.opt.PoolConfig.MaxOpenConns)
 
 	if s.opt.MigrationSwitch {
-		err = db.AutoMigrate(&entity.Dag{}, &entity.DagInstance{}, &entity.TaskInstance{})
+		err = db.AutoMigrate(&entity.Dag{}, &entity.DagInstance{}, &entity.DagInstanceTag{}, &entity.TaskInstance{})
 		if err != nil {
 			return err
 		}

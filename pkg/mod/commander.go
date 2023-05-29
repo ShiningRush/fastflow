@@ -32,6 +32,25 @@ func (c *DefCommander) RunDag(dagId string, specVars map[string]string) (*entity
 	return dagIns, nil
 }
 
+// RunDagWithTags
+func (c *DefCommander) RunDagWithTags(dagId string, specVars map[string]string, tags map[string]string) (*entity.DagInstance, error) {
+	dag, err := GetStore().GetDag(dagId)
+	if err != nil {
+		return nil, err
+	}
+
+	dagIns, err := dag.Run(entity.TriggerManually, specVars)
+	if err != nil {
+		return nil, err
+	}
+
+	dagIns.Tags = entity.NewDagInstanceTags(tags)
+	if err := GetStore().CreateDagIns(dagIns); err != nil {
+		return nil, err
+	}
+	return dagIns, nil
+}
+
 // RetryDagIns
 func (c *DefCommander) RetryDagIns(dagInsId string, ops ...CommandOptSetter) error {
 	taskIns, err := GetStore().ListTaskInstance(&ListTaskInstanceInput{
@@ -52,6 +71,33 @@ func (c *DefCommander) RetryDagIns(dagInsId string, ops ...CommandOptSetter) err
 	}
 
 	return c.RetryTask(taskIds, ops...)
+}
+
+// CancelDagIns
+func (c *DefCommander) CancelDagIns(dagInsId string, ops ...CommandOptSetter) error {
+	taskIns, err := GetStore().ListTaskInstance(&ListTaskInstanceInput{
+		DagInsID: dagInsId,
+		Status: []entity.TaskInstanceStatus{
+			entity.TaskInstanceStatusInit,
+			entity.TaskInstanceStatusRunning,
+			entity.TaskInstanceStatusEnding,
+			entity.TaskInstanceStatusRetrying,
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(taskIns) == 0 {
+		return fmt.Errorf("no task instance")
+	}
+
+	var taskIds []string
+	for _, t := range taskIns {
+		taskIds = append(taskIds, t.ID)
+	}
+
+	return c.CancelTask(taskIds, ops...)
 }
 
 // RetryTask

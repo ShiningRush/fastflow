@@ -20,8 +20,10 @@ var (
 // Commander used to execute command
 type Commander interface {
 	RunDag(dagId string, specVar map[string]string) (*entity.DagInstance, error)
+	RunDagWithTags(dagId string, specVar map[string]string, tags map[string]string) (*entity.DagInstance, error)
 	RetryDagIns(dagInsId string, ops ...CommandOptSetter) error
 	RetryTask(taskInsIds []string, ops ...CommandOptSetter) error
+	CancelDagIns(dagInsId string, ops ...CommandOptSetter) error
 	CancelTask(taskInsIds []string, ops ...CommandOptSetter) error
 }
 

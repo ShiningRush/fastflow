@@ -95,6 +95,7 @@ type DagInstance struct {
 	Status    DagInstanceStatus `json:"status,omitempty" bson:"status,omitempty" gorm:"type:enum('init', 'scheduled', 'running', 'blocked', 'failed', 'success');index;not null;"`
 	Reason    string            `json:"reason,omitempty" bson:"reason,omitempty" gorm:"type:TEXT"`
 	Cmd       *Command          `json:"cmd,omitempty" bson:"cmd,omitempty" gorm:"type:JSON;serializer:json"`
+	Tags      []DagInstanceTag  `json:"tags,omitempty" bson:"tags,omitempty" gorm:"-"`
 }
 
 var (
@@ -315,3 +316,24 @@ const (
 	TriggerManually Trigger = "manually"
 	TriggerCron     Trigger = "cron"
 )
+
+// DagInstanceTag
+type DagInstanceTag struct {
+	BaseInfo      `bson:"inline"`
+	DagInstanceID string `json:"dagInstanceId,omitempty" bson:"dagInstanceId,omitempty" gorm:"type:VARCHAR(256);not null;uniqueIndex:idx_dag_instance_tags_dag_instance_id_key,priority:1"`
+	Key           string `json:"key,omitempty" bson:"key,omitempty" gorm:"type:VARCHAR(256);not null;uniqueIndex:idx_dag_instance_tags_dag_instance_id_key,priority:10"`
+	Value         string `json:"value,omitempty" bson:"value,omitempty" gorm:"type:VARCHAR(256);not null;"`
+}
+
+func NewDagInstanceTags(tags map[string]string) []DagInstanceTag {
+	var result []DagInstanceTag
+	if len(tags) == 0 {
+		return result
+	}
+	for k, v := range tags {
+		result = append(result, DagInstanceTag{
+			Key: k, Value: v,
+		})
+	}
+	return result
+}
