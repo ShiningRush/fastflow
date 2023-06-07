@@ -151,7 +151,7 @@ func (s *Store) PatchTaskIns(taskIns *entity.TaskInstance) error {
 	}
 
 	err := s.transaction(func(tx *gorm.DB) error {
-		return tx.Model(taskIns).Updates(updateIns).Error
+		return tx.Model(taskIns).UpdateColumns(updateIns).Error
 	})
 	if err != nil {
 		return fmt.Errorf("patch taskIns failed: %w", err)
@@ -183,7 +183,7 @@ func (s *Store) PatchDagIns(dagIns *entity.DagInstance, mustsPatchFields ...stri
 	}
 
 	err := s.transaction(func(tx *gorm.DB) error {
-		return tx.Model(dagIns).Updates(updateIns).Error
+		return tx.Model(dagIns).UpdateColumns(updateIns).Error
 	})
 	if err != nil {
 		return fmt.Errorf("patch dagIns failed: %w", err)
