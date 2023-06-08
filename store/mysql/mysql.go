@@ -151,7 +151,7 @@ func (s *Store) PatchTaskIns(taskIns *entity.TaskInstance) error {
 	}
 
 	err := s.transaction(func(tx *gorm.DB) error {
-		return tx.Model(taskIns).UpdateColumns(updateIns).Error
+		return tx.Model(taskIns).Updates(updateIns).Error
 	})
 	if err != nil {
 		return fmt.Errorf("patch taskIns failed: %w", err)
@@ -166,24 +166,30 @@ func (s *Store) PatchDagIns(dagIns *entity.DagInstance, mustsPatchFields ...stri
 
 	updateIns := &entity.DagInstance{}
 	updateIns.BaseInfo.Update()
+	updateFields := []string{"UpdatedAt"}
 	if dagIns.ShareData != nil {
+		updateFields = append(updateFields, "ShareData")
 		updateIns.ShareData = dagIns.ShareData
 	}
 	if dagIns.Status != "" {
+		updateFields = append(updateFields, "Status")
 		updateIns.Status = dagIns.Status
 	}
 	if utils.StringsContain(mustsPatchFields, "Cmd") || dagIns.Cmd != nil {
+		updateFields = append(updateFields, "Cmd")
 		updateIns.Cmd = dagIns.Cmd
 	}
 	if dagIns.Worker != "" {
+		updateFields = append(updateFields, "Worker")
 		updateIns.Worker = dagIns.Worker
 	}
 	if utils.StringsContain(mustsPatchFields, "Reason") || dagIns.Reason != "" {
+		updateFields = append(updateFields, "Reason")
 		updateIns.Reason = dagIns.Reason
 	}
 
 	err := s.transaction(func(tx *gorm.DB) error {
-		return tx.Model(dagIns).UpdateColumns(updateIns).Error
+		return tx.Model(dagIns).Select(updateFields).Updates(updateIns).Error
 	})
 	if err != nil {
 		return fmt.Errorf("patch dagIns failed: %w", err)
@@ -204,7 +210,7 @@ func (s *Store) UpdateDag(dag *entity.Dag) error {
 
 	err = s.transaction(func(tx *gorm.DB) error {
 		dag.BaseInfo.Update()
-		return tx.Updates(dag).Error
+		return tx.Model(dag).Select("*").Updates(dag).Error
 	})
 	if err != nil {
 		return fmt.Errorf("update dag failed: %w", err)
