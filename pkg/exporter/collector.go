@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/shiningrush/fastflow/pkg/entity"
 	"github.com/shiningrush/fastflow/pkg/event"
@@ -209,8 +210,8 @@ func HttpHandler() http.Handler {
 		execCollector,
 		leaderCollector,
 		// Add the standard process and Go metrics to the custom registry.
-		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
-		prometheus.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+		collectors.NewGoCollector(),
 	)
 
 	return promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
