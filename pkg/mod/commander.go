@@ -10,6 +10,8 @@ import (
 	"github.com/shiningrush/fastflow/pkg/entity"
 )
 
+var _ Commander = (*DefCommander)(nil)
+
 // DefCommander used to execute command
 type DefCommander struct {
 }
@@ -78,6 +80,18 @@ func (c *DefCommander) CancelTask(taskInsIds []string, ops ...CommandOptSetter) 
 		}
 		return dagIns.Cancel(taskInsIds)
 	}, opt)
+}
+
+// ContinueDagIns using to continue a blocked dag instance
+func (c *DefCommander) ContinueDagIns(taskInsIds []string, ops ...CommandOptSetter) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+// ContinueTask using to continue many blocked task instances
+func (c *DefCommander) ContinueTask(taskInsIds []string, ops ...CommandOptSetter) error {
+	//TODO implement me
+	panic("implement me")
 }
 
 func initOption(opSetter []CommandOptSetter) (opt CommandOption) {

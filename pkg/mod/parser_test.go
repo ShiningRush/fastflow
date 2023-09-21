@@ -819,7 +819,7 @@ func TestDefParser_WatchDagInsCmd(t *testing.T) {
 			giveListRet: []*entity.DagInstance{
 				{
 					Cmd: &entity.Command{
-						Name: "",
+						Name: "test",
 					},
 				},
 			},
@@ -836,7 +836,7 @@ func TestDefParser_WatchDagInsCmd(t *testing.T) {
 			giveListRet: []*entity.DagInstance{
 				{
 					Cmd: &entity.Command{
-						Name: "",
+						Name: "test",
 					},
 				},
 			},
@@ -853,7 +853,7 @@ func TestDefParser_WatchDagInsCmd(t *testing.T) {
 			giveListRet: []*entity.DagInstance{
 				{
 					Cmd: &entity.Command{
-						Name: "",
+						Name: "test",
 					},
 				},
 			},

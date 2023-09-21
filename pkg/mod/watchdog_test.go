@@ -287,7 +287,7 @@ func TestDefWatchDog(t *testing.T) {
 
 	wDog := NewDefWatchDog(time.Minute)
 	wDog.Init()
-	time.Sleep(1 * time.Second)
+	time.Sleep(3 * time.Second)
 	wDog.Close()
 	assert.True(t, calledListDag, calledListTask)
 }

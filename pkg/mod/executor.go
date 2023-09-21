@@ -162,7 +162,8 @@ func (e *DefExecutor) Push(dagIns *entity.DagInstance, taskIns *entity.TaskInsta
 
 func (e *DefExecutor) workerDo(taskIns *entity.TaskInstance) {
 	switch taskIns.Status {
-	case entity.TaskInstanceStatusInit, entity.TaskInstanceStatusEnding, entity.TaskInstanceStatusRetrying:
+	case entity.TaskInstanceStatusInit, entity.TaskInstanceStatusEnding,
+		entity.TaskInstanceStatusRetrying, entity.TaskInstanceStatusContinue:
 	default:
 		log.Warnf("this task instance[%s] is not executable, status[%s]", taskIns.ID, taskIns.Status)
 		return
