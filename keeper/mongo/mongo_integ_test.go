@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var mongoConn = "mongodb://root:pwd@127.0.0.1:27017/fastflow?authSource=admin"
@@ -121,7 +122,7 @@ func initWorker(t *testing.T, key string) *Keeper {
 		ConnStr: mongoConn,
 	})
 	err := w.Init()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	return w
 }
 
