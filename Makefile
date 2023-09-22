@@ -12,12 +12,12 @@ tidy:
 
 .PHONY: test
 test:
-	go test -race -coverprofile=coverage.out ./...
+	go test -race -coverprofile=coverage.txt ./...
 
 # include integration tests
 .PHONY: g-test
 g-test:
-	go test -race -coverprofile=coverage.out ./... -tags=integration
+	go test -tags=integration -race -coverprofile=coverage.txt ./...
 
 # usage
 # you must run `make install` to install necessary tools
