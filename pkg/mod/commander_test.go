@@ -99,18 +99,19 @@ func TestDefCommander_RunDag(t *testing.T) {
 	}
 }
 
-func TestDefCommander_RetryDagIns(t *testing.T) {
+func TestDefCommander_OpDagIns(t *testing.T) {
 	tests := []struct {
 		caseDesc      string
 		giveDagInsID  string
 		giveListRet   []*entity.TaskInstance
 		giveListErr   error
+		giveOp        string
 		wantErr       error
 		wantListInput []*ListTaskInstanceInput
 		wantTaskInsId string
 	}{
 		{
-			caseDesc:     "normal",
+			caseDesc:     "retry-normal",
 			giveDagInsID: "dagInsId",
 			wantListInput: []*ListTaskInstanceInput{
 				{
@@ -127,6 +128,35 @@ func TestDefCommander_RetryDagIns(t *testing.T) {
 						ID: "testTaskId",
 					},
 					Status: entity.TaskInstanceStatusFailed,
+				},
+				{
+					BaseInfo: entity.BaseInfo{
+						ID: "testTaskId2",
+					},
+					Status: entity.TaskInstanceStatusFailed,
+				},
+			},
+			wantTaskInsId: "testTaskId",
+		},
+		{
+			caseDesc:     "continue-normal",
+			giveDagInsID: "dagInsId",
+			giveOp:       entity.CommandNameContinue,
+			wantListInput: []*ListTaskInstanceInput{
+				{
+					DagInsID: "dagInsId",
+					Status:   []entity.TaskInstanceStatus{entity.TaskInstanceStatusBlocked},
+				},
+				{
+					IDs: []string{"testTaskId", "testTaskId2"},
+				},
+			},
+			giveListRet: []*entity.TaskInstance{
+				{
+					BaseInfo: entity.BaseInfo{
+						ID: "testTaskId",
+					},
+					Status: entity.TaskInstanceStatusBlocked,
 				},
 				{
 					BaseInfo: entity.BaseInfo{
@@ -159,7 +189,7 @@ func TestDefCommander_RetryDagIns(t *testing.T) {
 				},
 			},
 			giveListRet: []*entity.TaskInstance{},
-			wantErr:     fmt.Errorf("no failed and canceled task instance"),
+			wantErr:     fmt.Errorf("no [failed canceled] task instance"),
 		},
 	}
 
@@ -188,20 +218,26 @@ func TestDefCommander_RetryDagIns(t *testing.T) {
 			SetKeeper(mKeep)
 
 			c := &DefCommander{}
-			err := c.RetryDagIns(tc.giveDagInsID)
+			var err error
+			if tc.giveOp == entity.CommandNameContinue {
+				err = c.ContinueDagIns(tc.giveDagInsID)
+			} else {
+				err = c.RetryDagIns(tc.giveDagInsID)
+			}
 			assert.Equal(t, tc.wantErr, err)
 			assert.True(t, isCalled)
 		})
 	}
 }
 
-func TestDefCommander_RetryTask(t *testing.T) {
+func TestDefCommander_OpTask(t *testing.T) {
 	tests := []struct {
 		caseDesc             string
 		giveTaskInsID        []string
 		giveIsAlive          bool
 		giveAliveNodes       []string
 		giveAliveNodesErr    error
+		giveOp               string
 		wantErr              error
 		wantUpdateDagIns     *entity.DagInstance
 		wantAliveNodesCalled bool
@@ -213,6 +249,18 @@ func TestDefCommander_RetryTask(t *testing.T) {
 			wantUpdateDagIns: &entity.DagInstance{
 				Cmd: &entity.Command{
 					Name:             entity.CommandNameRetry,
+					TargetTaskInsIDs: []string{"test task"},
+				},
+			},
+		},
+		{
+			caseDesc:      "normal-continue",
+			giveTaskInsID: []string{"test task"},
+			giveIsAlive:   true,
+			giveOp:        entity.CommandNameContinue,
+			wantUpdateDagIns: &entity.DagInstance{
+				Cmd: &entity.Command{
+					Name:             entity.CommandNameContinue,
 					TargetTaskInsIDs: []string{"test task"},
 				},
 			},
@@ -269,7 +317,12 @@ func TestDefCommander_RetryTask(t *testing.T) {
 			SetKeeper(mKeep)
 
 			c := &DefCommander{}
-			err := c.RetryTask(tc.giveTaskInsID)
+			var err error
+			if tc.giveOp == entity.CommandNameContinue {
+				err = c.ContinueTask(tc.giveTaskInsID)
+			} else {
+				err = c.RetryTask(tc.giveTaskInsID)
+			}
 			assert.Equal(t, tc.wantErr, err)
 			assert.Equal(t, tc.wantAliveNodesCalled, isCalled)
 		})

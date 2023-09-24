@@ -29,9 +29,9 @@ jobs:
         mongodb-password: pwd
 
     - name: Test
-      run: go test -coverprofile coverage.txt -covermode=atomic -v ./... 
+      run: make g-test
       
     - name: Upload Coverage report to CodeCov
       uses: codecov/codecov-action@v2
       with:
-        file: ./coverage.txt
+        file: ./coverage.out

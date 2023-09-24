@@ -253,7 +253,7 @@ func (t *TaskInstance) Run(params interface{}, act run.Action) (err error) {
 
 	}()
 
-	if t.Status == TaskInstanceStatusInit {
+	if t.Status == TaskInstanceStatusInit || t.Status == TaskInstanceStatusContinue {
 		beforeAct, ok := act.(run.BeforeAction)
 		if ok {
 			if err := beforeAct.RunBefore(t.Context, params); err != nil {
@@ -335,5 +335,6 @@ const (
 	TaskInstanceStatusRetrying TaskInstanceStatus = "retrying"
 	TaskInstanceStatusSuccess  TaskInstanceStatus = "success"
 	TaskInstanceStatusBlocked  TaskInstanceStatus = "blocked"
+	TaskInstanceStatusContinue TaskInstanceStatus = "continue"
 	TaskInstanceStatusSkipped  TaskInstanceStatus = "skipped"
 )
