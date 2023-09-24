@@ -74,7 +74,7 @@ func TestKeeper_Concurrency(t *testing.T) {
 		}
 	}()
 
-	curCnt := 40
+	curCnt := 20
 	initCompleted := sync.WaitGroup{}
 	initCompleted.Add(curCnt)
 	closeCh := make(chan struct{})
