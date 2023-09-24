@@ -159,7 +159,7 @@ func TestDefCommander_RetryDagIns(t *testing.T) {
 				},
 			},
 			giveListRet: []*entity.TaskInstance{},
-			wantErr:     fmt.Errorf("no failed and canceled task instance"),
+			wantErr:     fmt.Errorf("no [failed canceled] task instance"),
 		},
 	}
 

@@ -23,7 +23,7 @@ type Commander interface {
 	RetryDagIns(dagInsId string, ops ...CommandOptSetter) error
 	RetryTask(taskInsIds []string, ops ...CommandOptSetter) error
 	CancelTask(taskInsIds []string, ops ...CommandOptSetter) error
-	ContinueDagIns(taskInsIds []string, ops ...CommandOptSetter) error
+	ContinueDagIns(dagInsId string, ops ...CommandOptSetter) error
 	ContinueTask(taskInsIds []string, ops ...CommandOptSetter) error
 }
 

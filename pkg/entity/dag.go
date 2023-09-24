@@ -246,27 +246,28 @@ func (dagIns *DagInstance) Block(reason string) {
 
 // Retry tasks, it is just set a command, command will execute by Parser
 func (dagIns *DagInstance) Retry(taskInsIds []string) error {
-	if dagIns.Cmd != nil {
-		return fmt.Errorf("dag instance have a incomplete command")
-	}
-
-	dagIns.executeHook(HookDagInstance.BeforeRetry)
-	dagIns.Cmd = &Command{
-		Name:             CommandNameRetry,
-		TargetTaskInsIDs: taskInsIds,
-	}
-	return nil
+	return dagIns.genCmd(taskInsIds, CommandNameRetry)
 }
 
 // Continue tasks, it is just set a command, command will execute by Parser
 func (dagIns *DagInstance) Continue(taskInsIds []string) error {
+	return dagIns.genCmd(taskInsIds, CommandNameContinue)
+}
+
+func (dagIns *DagInstance) genCmd(taskInsIds []string, cmdName CommandName) error {
 	if dagIns.Cmd != nil {
 		return fmt.Errorf("dag instance have a incomplete command")
 	}
 
-	dagIns.executeHook(HookDagInstance.BeforeContinue)
+	switch cmdName {
+	case CommandNameRetry:
+		dagIns.executeHook(HookDagInstance.BeforeRetry)
+	case CommandNameContinue:
+		dagIns.executeHook(HookDagInstance.BeforeContinue)
+	}
+
 	dagIns.Cmd = &Command{
-		Name:             CommandNameContinue,
+		Name:             cmdName,
 		TargetTaskInsIDs: taskInsIds,
 	}
 	return nil
