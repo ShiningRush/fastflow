@@ -512,7 +512,7 @@ func (p *DefParser) Close() {
 }
 
 func (p *DefParser) handleErr(err error) {
-	log.Errorf("parser get some error",
+	log.Error("parser get some error",
 		"module", "parser",
 		"err", err)
 }
