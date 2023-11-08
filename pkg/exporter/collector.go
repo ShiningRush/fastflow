@@ -3,6 +3,8 @@ package exporter
 import (
 	"context"
 	"net/http"
+	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -23,7 +25,7 @@ var (
 	failedTaskCountDesc = prometheus.NewDesc(
 		"fastflow_executor_task_failed_total",
 		"The count of already failed task.",
-		[]string{"worker_key"}, nil,
+		[]string{"worker_key", "dag_ins_ids"}, nil,
 	)
 	successTaskCountDesc = prometheus.NewDesc(
 		"fastflow_executor_task_success_total",
@@ -60,9 +62,12 @@ var (
 
 // ExecutorCollector
 type ExecutorCollector struct {
+	rwMutex sync.RWMutex
+
 	RunningTaskCount   int64
 	SuccessTaskCount   uint64
 	FailedTaskCount    uint64
+	FailedDagInsIDs    []string
 	CompletedTaskCount uint64
 
 	ParseElapsedMs   int64
@@ -88,6 +93,9 @@ func (c *ExecutorCollector) Handle(cxt context.Context, e goevent.Event) {
 		switch completeEvent.TaskIns.Status {
 		case entity.TaskInstanceStatusFailed:
 			atomic.AddUint64(&c.FailedTaskCount, 1)
+			c.rwMutex.Lock()
+			c.FailedDagInsIDs = append(c.FailedDagInsIDs, completeEvent.TaskIns.DagInsID)
+			c.rwMutex.Unlock()
 		case entity.TaskInstanceStatusSuccess:
 			atomic.AddUint64(&c.SuccessTaskCount, 1)
 		}
@@ -120,11 +128,16 @@ func (c *ExecutorCollector) Collect(ch chan<- prometheus.Metric) {
 		float64(c.CompletedTaskCount),
 		mod.GetKeeper().WorkerKey(),
 	)
+	c.rwMutex.Lock()
+	dagInsIdStr := strings.Join(c.FailedDagInsIDs, ",")
+	c.FailedDagInsIDs = []string{}
+	c.rwMutex.Unlock()
 	ch <- prometheus.MustNewConstMetric(
 		failedTaskCountDesc,
 		prometheus.CounterValue,
 		float64(c.FailedTaskCount),
 		mod.GetKeeper().WorkerKey(),
+		dagInsIdStr,
 	)
 	ch <- prometheus.MustNewConstMetric(
 		successTaskCountDesc,
