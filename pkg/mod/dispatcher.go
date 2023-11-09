@@ -1,7 +1,6 @@
 package mod
 
 import (
-	"math/rand"
 	"sync"
 	"time"
 
@@ -79,8 +78,7 @@ func (d *DefDispatcher) Do() error {
 
 	for i := range dagIns {
 		dagIns[i].Status = entity.DagInstanceStatusScheduled
-		nodeNumber := rand.Intn(len(nodes))
-		dagIns[i].Worker = nodes[nodeNumber]
+		dagIns[i].Worker = nodes[i%len(nodes)]
 	}
 
 	if err := GetStore().BatchUpdateDagIns(dagIns); err != nil {
