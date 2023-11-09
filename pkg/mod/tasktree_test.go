@@ -898,13 +898,13 @@ func TestTaskNode_GetExecutableTaskIds(t *testing.T) {
 					BaseInfo: entity.BaseInfo{ID: "c1-child2"},
 					TaskID:   "c1-child2",
 					DependOn: []string{"child1"},
-					Status:   entity.TaskInstanceStatusEnding,
+					Status:   entity.TaskInstanceStatusContinue,
 				},
 				{
 					BaseInfo: entity.BaseInfo{ID: "child2"},
 					TaskID:   "child2",
 					DependOn: []string{"root"},
-					Status:   entity.TaskInstanceStatusEnding,
+					Status:   entity.TaskInstanceStatusInit,
 				},
 				{
 					BaseInfo: entity.BaseInfo{ID: "c2-child1"},
@@ -913,10 +913,10 @@ func TestTaskNode_GetExecutableTaskIds(t *testing.T) {
 					Status:   entity.TaskInstanceStatusEnding,
 				},
 				{
-					BaseInfo: entity.BaseInfo{ID: "c2-child2"},
+					BaseInfo: entity.BaseInfo{ID: "c2-child3"},
 					TaskID:   "c2-child2",
 					DependOn: []string{"child2"},
-					Status:   entity.TaskInstanceStatusEnding,
+					Status:   entity.TaskInstanceStatusContinue,
 				},
 			},
 			wantRet: []string{

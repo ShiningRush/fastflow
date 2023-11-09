@@ -109,6 +109,23 @@ func TestDagInstance_Block(t *testing.T) {
 	})
 }
 
+func TestDagInstance_Continue(t *testing.T) {
+	dagIns := &DagInstance{
+		Status: DagInstanceStatusBlocked,
+	}
+	testHook(t, dagIns, "continue", DagInstanceStatusBlocked, func() {
+		err := dagIns.Continue([]string{"testId"})
+		assert.NoError(t, err)
+	})
+
+	incompleteDagIns := &DagInstance{
+		Status: DagInstanceStatusBlocked,
+		Cmd:    &Command{},
+	}
+	err := incompleteDagIns.Continue([]string{"testId"})
+	assert.Equal(t, fmt.Errorf("dag instance have a incomplete command"), err)
+}
+
 func testHook(t *testing.T, dagIns *DagInstance, wantRet string, wantStatus DagInstanceStatus, call func()) {
 	ret := ""
 	HookDagInstance = DagInstanceLifecycleHook{
@@ -127,6 +144,10 @@ func testHook(t *testing.T, dagIns *DagInstance, wantRet string, wantStatus DagI
 		BeforeBlock: func(dagIns *DagInstance) {
 			assert.NotNil(t, dagIns)
 			ret = string(DagInstanceStatusBlocked)
+		},
+		BeforeContinue: func(dagIns *DagInstance) {
+			assert.NotNil(t, dagIns)
+			ret = "continue"
 		},
 		BeforeRetry: func(dagIns *DagInstance) {
 			assert.NotNil(t, dagIns)

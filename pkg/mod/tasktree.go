@@ -311,6 +311,7 @@ func (t *TaskNode) GetNextTaskIds(completedOrRetryTask *entity.TaskInstance) (ex
 func (t *TaskNode) Executable() bool {
 	if t.Status == entity.TaskInstanceStatusInit ||
 		t.Status == entity.TaskInstanceStatusRetrying ||
+		t.Status == entity.TaskInstanceStatusContinue ||
 		t.Status == entity.TaskInstanceStatusEnding {
 		if len(t.parents) == 0 {
 			return true

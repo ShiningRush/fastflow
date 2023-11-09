@@ -338,7 +338,7 @@ func (p *DefParser) sendToChannel(mod int, taskIns *entity.TaskInstance, newRout
 	select {
 	// ensure that same dag instance handled by same worker, so avoid parallel writing
 	case p.workerQueue[mod] <- taskIns:
-	// if queue is full, we can do it in a new goroutine to prevent dead lock
+	// if queue is full, we can do it in a new goroutine to prevent deadlock
 	default:
 		go p.sendToChannel(mod, taskIns, false)
 	}
@@ -405,39 +405,44 @@ func (p *DefParser) parseCmd(dagIns *entity.DagInstance) (err error) {
 	if dagIns.Cmd != nil {
 		switch dagIns.Cmd.Name {
 		case entity.CommandNameRetry:
-			hasAnyTaskRetried := false
-			defer func() {
-				if err == nil && hasAnyTaskRetried {
-					p.InitialDagIns(dagIns)
-				}
-			}()
+			err = p.loopTaskThenInitialDagIns(
+				dagIns,
+				[]entity.TaskInstanceStatus{entity.TaskInstanceStatusFailed, entity.TaskInstanceStatusCanceled},
+				func(t *entity.TaskInstance) bool {
+					if t.Status != entity.TaskInstanceStatusFailed &&
+						t.Status != entity.TaskInstanceStatusCanceled {
+						return false
+					}
 
-			taskIns, err := GetStore().ListTaskInstance(&ListTaskInstanceInput{
-				IDs:    dagIns.Cmd.TargetTaskInsIDs,
-				Status: []entity.TaskInstanceStatus{entity.TaskInstanceStatusFailed, entity.TaskInstanceStatusCanceled},
-			})
+					t.Status = entity.TaskInstanceStatusRetrying
+					t.Reason = ""
+					return true
+				})
 			if err != nil {
-				return err
+				return
 			}
-
-			for _, t := range taskIns {
-				if t.Status != entity.TaskInstanceStatusFailed &&
-					t.Status != entity.TaskInstanceStatusCanceled {
-					continue
-				}
-
-				t.Status = entity.TaskInstanceStatusRetrying
-				t.Reason = ""
-				if err := GetStore().UpdateTaskIns(t); err != nil {
-					return err
-				}
-				hasAnyTaskRetried = true
-			}
-			dagIns.Run()
 		case entity.CommandNameCancel:
 			if err := GetExecutor().CancelTaskIns(dagIns.Cmd.TargetTaskInsIDs); err != nil {
 				return err
 			}
+		case entity.CommandNameContinue:
+			err = p.loopTaskThenInitialDagIns(
+				dagIns,
+				[]entity.TaskInstanceStatus{entity.TaskInstanceStatusBlocked},
+				func(t *entity.TaskInstance) bool {
+					if t.Status != entity.TaskInstanceStatusBlocked {
+						return false
+					}
+
+					t.Status = entity.TaskInstanceStatusContinue
+					t.Reason = ""
+					return true
+				})
+			if err != nil {
+				return
+			}
+		default:
+			log.Errorf("command[%s] is invalid, ignore it", dagIns.Cmd.Name)
 		}
 
 		dagIns.Cmd = nil
@@ -451,6 +456,41 @@ func (p *DefParser) parseCmd(dagIns *entity.DagInstance) (err error) {
 		}
 	}
 	return nil
+}
+
+func (p *DefParser) loopTaskThenInitialDagIns(
+	dagIns *entity.DagInstance,
+	status []entity.TaskInstanceStatus,
+	loopFunc func(*entity.TaskInstance) bool) (err error) {
+
+	hasAnyTaskChanged := false
+	defer func() {
+		if err == nil && hasAnyTaskChanged {
+			p.InitialDagIns(dagIns)
+		}
+	}()
+
+	taskIns, err := GetStore().ListTaskInstance(&ListTaskInstanceInput{
+		DagInsID: dagIns.ID,
+		IDs:      dagIns.Cmd.TargetTaskInsIDs,
+		Status:   status,
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, t := range taskIns {
+		if taskChanged := loopFunc(t); !taskChanged {
+			continue
+		}
+
+		if err := GetStore().UpdateTaskIns(t); err != nil {
+			return err
+		}
+		hasAnyTaskChanged = true
+	}
+	dagIns.Run()
+	return
 }
 
 // Close
@@ -472,7 +512,7 @@ func (p *DefParser) Close() {
 }
 
 func (p *DefParser) handleErr(err error) {
-	log.Errorf("parser get some error",
+	log.Error("parser get some error",
 		"module", "parser",
 		"err", err)
 }

@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastflow-demo
+  labels:
+    app: fastflow-demo
+spec:
+  ports:
+    - port: 80
+      name: fastflow-demo
+  clusterIP: None
+  selector:
+    app: fastflow-demo
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: fastflow-demo
+spec:
+  selector:
+    matchLabels:
+      app: fastflow-demo
+  serviceName: fastflow-demo
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: fastflow-demo
+    spec:
+      containers:
+        - name: nginx
+          image: your-image-repo/fastflow-demo:latest
+          env:
+            # using pod name as worker key(format like: fastflow-demo-0, fastflow-demo-1 ...)
+            - name: WORKER_KEY
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name

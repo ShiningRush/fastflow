@@ -43,12 +43,12 @@ jobs:
         mysql root password: mysqlpw # Required if "mysql user" is empty, default is empty. The root superuser password
 
     - name: Test
-      run: go test -coverprofile coverage.txt -covermode=atomic -v ./... 
+      run: make g-test
       
     - name: Upload Coverage report to CodeCov
       uses: codecov/codecov-action@v2
       with:
-        file: ./coverage.txt
+        file: ./coverage.out
 
     - name: Integration Test
       run: go test -race -coverprofile=integration-coverage.out ./... -tags=integration

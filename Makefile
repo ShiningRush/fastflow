@@ -17,11 +17,11 @@ test:
 # include integration tests
 .PHONY: g-test
 g-test:
-	go test -race -coverprofile=coverage.out ./... -tags=integration
+	go test -tags=integration -race -coverprofile=coverage.out ./...
 
 # usage
 # you must run `make install` to install necessary tools
-# make mock dir=path/to/mock
+# make mock
 .PHONY: mock
 mock:
 	for file in `find . -type d \( -path ./.git -o -path ./.github \) -prune -o -name '*.go' -print | xargs grep --files-with-matches -e '//go:generate mockgen'`; do \

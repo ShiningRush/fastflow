@@ -205,6 +205,39 @@ func TestTaskInstance_Run(t *testing.T) {
 			wantRunBeforeCalled: true,
 		},
 		{
+			caseDesc: "continue",
+			giveTask: &TaskInstance{
+				BaseInfo: BaseInfo{
+					ID: "continue-task",
+				},
+				Status: TaskInstanceStatusContinue,
+			},
+			giveParams: "",
+			wantSaveTasks: []TaskInstance{
+				{
+					BaseInfo: BaseInfo{
+						ID: "continue-task",
+					},
+					Status: TaskInstanceStatusRunning,
+				},
+				{
+					BaseInfo: BaseInfo{
+						ID: "continue-task",
+					},
+					Status: TaskInstanceStatusEnding,
+				},
+				{
+					BaseInfo: BaseInfo{
+						ID: "continue-task",
+					},
+					Status: TaskInstanceStatusSuccess,
+				},
+			},
+			wantRunCalled:       true,
+			wantRunAfterCalled:  true,
+			wantRunBeforeCalled: true,
+		},
+		{
 			caseDesc: "panic",
 			giveTask: &TaskInstance{
 				BaseInfo: BaseInfo{

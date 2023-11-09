@@ -111,7 +111,6 @@ func (m *MongoMutex) spinLock(ctx context.Context, opt *mod.LockOption) error {
 	return nil
 }
 
-//
 func (m *MongoMutex) Unlock(ctx context.Context) error {
 	if m.lockDetail == nil {
 		return fmt.Errorf("the mutex is not locked")

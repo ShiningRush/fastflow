@@ -10,6 +10,8 @@ import (
 	"github.com/shiningrush/fastflow/pkg/entity"
 )
 
+var _ Commander = (*DefCommander)(nil)
+
 // DefCommander used to execute command
 type DefCommander struct {
 }
@@ -53,24 +55,11 @@ func (c *DefCommander) RunDagWithTags(dagId string, specVars map[string]string, 
 
 // RetryDagIns
 func (c *DefCommander) RetryDagIns(dagInsId string, ops ...CommandOptSetter) error {
-	taskIns, err := GetStore().ListTaskInstance(&ListTaskInstanceInput{
-		DagInsID: dagInsId,
-		Status:   []entity.TaskInstanceStatus{entity.TaskInstanceStatusFailed, entity.TaskInstanceStatusCanceled},
-	})
-	if err != nil {
-		return err
-	}
-
-	if len(taskIns) == 0 {
-		return fmt.Errorf("no failed and canceled task instance")
-	}
-
-	var taskIds []string
-	for _, t := range taskIns {
-		taskIds = append(taskIds, t.ID)
-	}
-
-	return c.RetryTask(taskIds, ops...)
+	return c.autoLoopDagTasks(
+		dagInsId,
+		[]entity.TaskInstanceStatus{entity.TaskInstanceStatusFailed, entity.TaskInstanceStatusCanceled},
+		c.RetryTask,
+		ops...)
 }
 
 // CancelDagIns
@@ -124,6 +113,55 @@ func (c *DefCommander) CancelTask(taskInsIds []string, ops ...CommandOptSetter) 
 		}
 		return dagIns.Cancel(taskInsIds)
 	}, opt)
+}
+
+// ContinueDagIns using to continue a blocked dag instance
+func (c *DefCommander) ContinueDagIns(dagInsId string, ops ...CommandOptSetter) error {
+	return c.autoLoopDagTasks(
+		dagInsId,
+		[]entity.TaskInstanceStatus{entity.TaskInstanceStatusBlocked},
+		c.ContinueTask,
+		ops...)
+}
+
+// ContinueTask using to continue many blocked task instances
+func (c *DefCommander) ContinueTask(taskInsIds []string, ops ...CommandOptSetter) error {
+	opt := initOption(ops)
+	return executeCommand(taskInsIds, func(dagIns *entity.DagInstance, isWorkerAlive bool) error {
+		if !isWorkerAlive {
+			aliveNodes, err := GetKeeper().AliveNodes()
+			if err != nil {
+				return err
+			}
+			dagIns.Worker = aliveNodes[rand.Intn(len(aliveNodes))]
+		}
+		return dagIns.Continue(taskInsIds)
+	}, opt)
+}
+
+func (c *DefCommander) autoLoopDagTasks(
+	dagInsId string,
+	status []entity.TaskInstanceStatus,
+	cmdOp func(taskInsIds []string, ops ...CommandOptSetter) error,
+	ops ...CommandOptSetter) error {
+	taskIns, err := GetStore().ListTaskInstance(&ListTaskInstanceInput{
+		DagInsID: dagInsId,
+		Status:   status,
+	})
+	if err != nil {
+		return err
+	}
+
+	if len(taskIns) == 0 {
+		return fmt.Errorf("no %+v task instance", status)
+	}
+
+	var taskIds []string
+	for _, t := range taskIns {
+		taskIds = append(taskIds, t.ID)
+	}
+
+	return cmdOp(taskIds, ops...)
 }
 
 func initOption(opSetter []CommandOptSetter) (opt CommandOption) {

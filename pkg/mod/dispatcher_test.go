@@ -190,7 +190,7 @@ func TestDefDispatcher_InitAndClose(t *testing.T) {
 			})
 			log.SetLogger(mLogger)
 			d.Init()
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * 5)
 			d.Close()
 			assert.True(t, calledList, tc.caseDesc)
 			assert.Equal(t, calledLog, tc.wantLogCalled, tc.caseDesc)

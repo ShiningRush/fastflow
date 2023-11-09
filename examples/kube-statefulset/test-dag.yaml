@@ -1,0 +1,11 @@
+id: "test-dag"
+name: "test"
+tasks:
+  - id: "task1"
+    actionName: "PrintAction"
+  - id: "task2"
+    actionName: "PrintAction"
+    dependOn: ["task1"]
+  - id: "task3"
+    actionName: "PrintAction"
+    dependOn: ["task2"]

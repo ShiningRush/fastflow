@@ -819,7 +819,7 @@ func TestDefParser_WatchDagInsCmd(t *testing.T) {
 			giveListRet: []*entity.DagInstance{
 				{
 					Cmd: &entity.Command{
-						Name: "",
+						Name: "test",
 					},
 				},
 			},
@@ -836,7 +836,7 @@ func TestDefParser_WatchDagInsCmd(t *testing.T) {
 			giveListRet: []*entity.DagInstance{
 				{
 					Cmd: &entity.Command{
-						Name: "",
+						Name: "test",
 					},
 				},
 			},
@@ -853,7 +853,7 @@ func TestDefParser_WatchDagInsCmd(t *testing.T) {
 			giveListRet: []*entity.DagInstance{
 				{
 					Cmd: &entity.Command{
-						Name: "",
+						Name: "test",
 					},
 				},
 			},
@@ -1208,6 +1208,29 @@ func TestDefParser_ParseCmd(t *testing.T) {
 			wantCancelCalled:  true,
 		},
 		{
+			caseDesc: "continue blocked task",
+			giveDagIns: &entity.DagInstance{
+				Status: entity.DagInstanceStatusBlocked,
+				Cmd:    &entity.Command{Name: entity.CommandNameContinue, TargetTaskInsIDs: []string{"task1"}}},
+			wantGetTaskId: "task1",
+			giveTask: []*entity.TaskInstance{
+				{Status: entity.TaskInstanceStatusBlocked},
+			},
+			wantListCallCnt:      2,
+			wantUpdateTask:       &entity.TaskInstance{Status: entity.TaskInstanceStatusContinue},
+			wantUpdateTaskCalled: true,
+			wantUpdateDagIns:     &entity.DagInstance{Status: entity.DagInstanceStatusRunning},
+			wantUpdateDagCalled:  true,
+		},
+		{
+			caseDesc:        "continue get task failed",
+			giveDagIns:      &entity.DagInstance{Cmd: &entity.Command{Name: entity.CommandNameContinue, TargetTaskInsIDs: []string{"task1"}}},
+			wantGetTaskId:   "task1",
+			giveTaskErr:     fmt.Errorf("get task failed"),
+			wantErr:         fmt.Errorf("get task failed"),
+			wantListCallCnt: 1,
+		},
+		{
 			caseDesc:   "no cmd",
 			giveDagIns: &entity.DagInstance{},
 		},
@@ -1221,9 +1244,14 @@ func TestDefParser_ParseCmd(t *testing.T) {
 			mStore.On("ListTaskInstance", mock.Anything).Run(func(args mock.Arguments) {
 				listTaskCallCnt++
 				if listTaskCallCnt == 1 {
+					status := []entity.TaskInstanceStatus{entity.TaskInstanceStatusFailed, entity.TaskInstanceStatusCanceled}
+					if tc.giveDagIns.Cmd.Name == entity.CommandNameContinue {
+						status = []entity.TaskInstanceStatus{entity.TaskInstanceStatusBlocked}
+					}
+
 					assert.Equal(t, &ListTaskInstanceInput{
 						IDs:    tc.giveDagIns.Cmd.TargetTaskInsIDs,
-						Status: []entity.TaskInstanceStatus{entity.TaskInstanceStatusFailed, entity.TaskInstanceStatusCanceled},
+						Status: status,
 					}, args.Get(0))
 				}
 			}).Return(tc.giveTask, tc.giveTaskErr)

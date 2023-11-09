@@ -56,9 +56,10 @@ type LoopDoOption struct {
 }
 
 // LoopDo help you to complete loop action,for example
-// LoopDo(ctx, func(){
-//     log.Println("check status")
-// })
+//
+//	LoopDo(ctx, func(){
+//	    log.Println("check status")
+//	})
 func LoopDo(ctx ExecuteContext, do func() error, ops ...LoopDoOptionOp) error {
 	opt := &LoopDoOption{
 		interval: time.Second,

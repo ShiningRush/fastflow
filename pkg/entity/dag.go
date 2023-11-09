@@ -193,11 +193,12 @@ type DagInstanceHookFunc func(dagIns *DagInstance)
 
 // DagInstanceLifecycleHook
 type DagInstanceLifecycleHook struct {
-	BeforeRun     DagInstanceHookFunc
-	BeforeSuccess DagInstanceHookFunc
-	BeforeFail    DagInstanceHookFunc
-	BeforeBlock   DagInstanceHookFunc
-	BeforeRetry   DagInstanceHookFunc
+	BeforeRun      DagInstanceHookFunc
+	BeforeSuccess  DagInstanceHookFunc
+	BeforeFail     DagInstanceHookFunc
+	BeforeBlock    DagInstanceHookFunc
+	BeforeRetry    DagInstanceHookFunc
+	BeforeContinue DagInstanceHookFunc
 }
 
 // VarsGetter
@@ -246,15 +247,30 @@ func (dagIns *DagInstance) Block(reason string) {
 	dagIns.Status = DagInstanceStatusBlocked
 }
 
-// Retry a task, it is just set a command, command will execute by Parser
+// Retry tasks, it is just set a command, command will execute by Parser
 func (dagIns *DagInstance) Retry(taskInsIds []string) error {
+	return dagIns.genCmd(taskInsIds, CommandNameRetry)
+}
+
+// Continue tasks, it is just set a command, command will execute by Parser
+func (dagIns *DagInstance) Continue(taskInsIds []string) error {
+	return dagIns.genCmd(taskInsIds, CommandNameContinue)
+}
+
+func (dagIns *DagInstance) genCmd(taskInsIds []string, cmdName CommandName) error {
 	if dagIns.Cmd != nil {
 		return fmt.Errorf("dag instance have a incomplete command")
 	}
 
-	dagIns.executeHook(HookDagInstance.BeforeRetry)
+	switch cmdName {
+	case CommandNameRetry:
+		dagIns.executeHook(HookDagInstance.BeforeRetry)
+	case CommandNameContinue:
+		dagIns.executeHook(HookDagInstance.BeforeContinue)
+	}
+
 	dagIns.Cmd = &Command{
-		Name:             CommandNameRetry,
+		Name:             cmdName,
 		TargetTaskInsIDs: taskInsIds,
 	}
 	return nil
@@ -293,8 +309,9 @@ type Command struct {
 type CommandName string
 
 const (
-	CommandNameRetry  = "retry"
-	CommandNameCancel = "cancel"
+	CommandNameRetry    = "retry"
+	CommandNameCancel   = "cancel"
+	CommandNameContinue = "continue"
 )
 
 // DagInstanceStatus
