@@ -58,7 +58,7 @@ func TestKeeper_Crash(t *testing.T) {
 	w3.Close()
 }
 
-func IgnoreTestKeeper_Concurrency(t *testing.T) {
+func TestKeeper_Concurrency(t *testing.T) {
 	wg := sync.WaitGroup{}
 	stsCh := make(chan struct {
 		isLeader   bool
@@ -120,7 +120,7 @@ func initWorker(t *testing.T, key string) *Keeper {
 	w := NewKeeper(&KeeperOption{
 		Key:                      key,
 		ConnStr:                  mongoConn,
-		InitFlakeGeneratorSwitch: boolToPointer(false),
+		InitFlakeGeneratorSwitch: boolToPointer(true),
 	})
 	err := w.Init()
 	require.NoError(t, err)

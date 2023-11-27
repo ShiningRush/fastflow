@@ -11,7 +11,7 @@ require (
 	github.com/shiningrush/goevent v0.1.0
 	github.com/sony/sonyflake v1.0.0
 	github.com/spaolacci/murmur3 v1.1.0
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	go.mongodb.org/mongo-driver v1.5.4
 	gopkg.in/yaml.v3 v3.0.0
 	gorm.io/driver/mysql v1.5.0
@@ -36,6 +36,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
+	github.com/shiningrush/goext v0.2.4-0.20230805045150-8b8c5748342b // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.0.2 // indirect

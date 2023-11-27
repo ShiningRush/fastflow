@@ -135,7 +135,7 @@ type ListDagInput struct {
 type ListDagInstanceInput struct {
 	Worker     string
 	DagID      string
-	Ids        []string
+	IDs        []string
 	UpdatedEnd int64
 	Status     []entity.DagInstanceStatus
 	Tags       map[string]string

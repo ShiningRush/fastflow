@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/shiningrush/goext/datax"
 	"sync"
 	"time"
 
@@ -386,12 +387,12 @@ func (s *Store) ListDagInstanceWithFilterTags(input *mod.ListDagInstanceInput) (
 	for _, v := range ret {
 		dagInsIds = append(dagInsIds, v.DagInsId)
 	}
-	if len(input.Ids) == 0 {
-		input.Ids = dagInsIds
+	if len(input.IDs) == 0 {
+		input.IDs = dagInsIds
 	} else {
-		input.Ids = IntersectStringSlice(input.Ids, dagInsIds)
+		input.IDs = datax.Intersect(input.IDs, dagInsIds)
 	}
-	if len(input.Ids) == 0 {
+	if len(input.IDs) == 0 {
 		return nil, nil
 	}
 
@@ -404,8 +405,8 @@ func (s *Store) ListDagInstanceWithoutFilterTags(input *mod.ListDagInstanceInput
 		if len(input.Status) > 0 {
 			tx = tx.Where("status in (?)", input.Status)
 		}
-		if len(input.Ids) > 0 {
-			tx = tx.Where("id in (?)", input.Ids)
+		if len(input.IDs) > 0 {
+			tx = tx.Where("id in (?)", input.IDs)
 		}
 		if input.Worker != "" {
 			tx = tx.Where("worker = ?", input.Worker)

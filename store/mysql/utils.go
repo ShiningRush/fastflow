@@ -26,20 +26,3 @@ func Chunk[T any](ss []T, chunkLength int) [][]T {
 
 	return result
 }
-
-func IntersectStringSlice(a []string, b []string) []string {
-	if len(a) == 0 || len(b) == 0 {
-		return nil
-	}
-	set := make(map[string]bool)
-	var intersect []string
-	for _, v := range a {
-		set[v] = true
-	}
-	for _, v := range b {
-		if set[v] {
-			intersect = append(intersect, v)
-		}
-	}
-	return intersect
-}
