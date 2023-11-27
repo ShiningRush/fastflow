@@ -131,8 +131,7 @@ func initWorker(t *testing.T, key string) *Keeper {
 			Passwd: "mysqlpw",
 			DBName: "fastflow",
 		},
-		MigrationSwitch:          true,
-		InitFlakeGeneratorSwitch: boolToPointer(false),
+		MigrationSwitch: true,
 	})
 	err := w.Init()
 	assert.NoError(t, err)
