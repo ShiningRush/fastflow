@@ -9,6 +9,7 @@ require (
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/prometheus/client_golang v1.14.0
 	github.com/shiningrush/goevent v0.1.0
+	github.com/shiningrush/goext v0.2.4-0.20230805045150-8b8c5748342b
 	github.com/sony/sonyflake v1.0.0
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.7.0
@@ -36,7 +37,6 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
-	github.com/shiningrush/goext v0.2.4-0.20230805045150-8b8c5748342b // indirect
 	github.com/stretchr/objx v0.1.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.0.2 // indirect
