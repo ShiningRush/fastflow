@@ -207,7 +207,7 @@ func (k *Keeper) Close() {
 	}
 
 	err := k.transaction(func(tx *gorm.DB) error {
-		return tx.Delete(&Heartbeat{}, "worker_key = ?", k.WorkerKey()).Error
+		return tx.Delete(&Heartbeat{WorkerKey: k.WorkerKey()}).Error
 	})
 	if err != nil {
 		log.Errorf("deregister heart beat failed: %s", err)
@@ -390,6 +390,9 @@ func (k *Keeper) initHeartBeat() error {
 		tx.DryRun = true
 		xx := tx.Delete(&Heartbeat{WorkerKey: k.WorkerKey()}).Statement
 		log.Info(xx.SQL.String())
+		for k, v := range xx.Vars {
+			log.Info("%s: %v", k, v)
+		}
 		return nil
 	}); err != nil {
 		return nil
