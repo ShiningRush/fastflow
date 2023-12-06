@@ -378,6 +378,22 @@ func (k *Keeper) queryGormStats() {
 }
 
 func (k *Keeper) initHeartBeat() error {
+	if err := k.transaction(func(tx *gorm.DB) error {
+		//h := &Heartbeat{}
+		//err := tx.Select("worker_key").Where("worker_key = ?", k.WorkerKey()).First(h).Error
+		//if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		//	return err
+		//}
+		//if err == nil && h.WorkerKey == k.WorkerKey() {
+		//	return nil
+		//}
+		tx.DryRun = true
+		xx := tx.Delete(&Heartbeat{WorkerKey: k.WorkerKey()}).Statement
+		log.Info(xx.SQL.String())
+		return nil
+	}); err != nil {
+		return nil
+	}
 	err := k.transaction(func(tx *gorm.DB) error {
 		//h := &Heartbeat{}
 		//err := tx.Select("worker_key").Where("worker_key = ?", k.WorkerKey()).First(h).Error
