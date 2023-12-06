@@ -356,7 +356,7 @@ func (k *Keeper) goHeartBeat() {
 
 func (k *Keeper) heartBeat() error {
 	err := k.transaction(func(tx *gorm.DB) error {
-		return tx.Where("worker_key = ?", k.WorkerKey()).Update("updated_at", time.Now()).Error
+		return tx.Model(&Heartbeat{}).Where("worker_key = ?", k.WorkerKey()).Update("updated_at", time.Now()).Error
 	})
 	if err != nil {
 		return fmt.Errorf("update hearbeat failed: %w", err)
