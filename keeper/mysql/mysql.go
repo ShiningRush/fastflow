@@ -2,6 +2,8 @@ package mysql
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -105,6 +107,10 @@ func (k *Keeper) Init() error {
 
 	k.wg.Add(1)
 	go k.goElect()
+
+	if err := k.initHeartBeat(); err != nil {
+		return err
+	}
 	k.wg.Add(1)
 	go k.goHeartBeat()
 
@@ -268,9 +274,13 @@ func (k *Keeper) campaign() error {
 		}
 		if election.UpdatedAt.Before(time.Now().Add(-1 * k.opt.UnhealthyTime)) {
 			return k.transaction(func(tx *gorm.DB) error {
-				election.WorkerKey = k.WorkerKey()
-				election.UpdatedAt = time.Now()
-				update := tx.Save(election)
+				update := tx.Model(&Election{}).
+					Where("id = ?", LeaderKey).
+					Where("worker_key = ?", election.WorkerKey).
+					Updates(map[string]interface{}{
+						"worker_key": k.WorkerKey(),
+						"updated_at": time.Now(),
+					})
 				if update.Error != nil {
 					log.Errorf("update failed: %s", update.Error)
 					return fmt.Errorf("update failed: %w", update.Error)
@@ -284,7 +294,7 @@ func (k *Keeper) campaign() error {
 		return nil
 	}
 
-	if err == gorm.ErrRecordNotFound {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		err := k.transaction(func(tx *gorm.DB) error {
 			election := &Election{
 				ID:        LeaderKey,
@@ -332,6 +342,7 @@ func (k *Keeper) goHeartBeat() {
 			closed = true
 		case <-timerCh:
 			if err := k.heartBeat(); err != nil {
+				k.queryGormStats()
 				log.Errorf("heart beat failed: %s", err)
 				continue
 			}
@@ -345,15 +356,42 @@ func (k *Keeper) goHeartBeat() {
 
 func (k *Keeper) heartBeat() error {
 	err := k.transaction(func(tx *gorm.DB) error {
-		return tx.Where(Heartbeat{WorkerKey: k.WorkerKey()}).
-			Assign(Heartbeat{
-				WorkerKey: k.WorkerKey(),
-				CreatedAt: time.Now(),
-				UpdatedAt: time.Now(),
-			}).FirstOrCreate(&Heartbeat{}).Error
+		return tx.Where("worker_key = ?", k.WorkerKey()).Update("updated_at", time.Now()).Error
 	})
 	if err != nil {
 		return fmt.Errorf("update hearbeat failed: %w", err)
+	}
+	return nil
+}
+
+func (k *Keeper) queryGormStats() {
+	tx, err := k.gormDB.DB()
+	if err != nil {
+		log.Errorf("get store client failed: %s", err)
+	} else {
+		bytes, err := json.Marshal(tx.Stats())
+		if err != nil {
+			log.Errorf("marshal stats failed: %s", err)
+		}
+		log.Info("stats: %s", string(bytes))
+	}
+}
+
+func (k *Keeper) initHeartBeat() error {
+	err := k.transaction(func(tx *gorm.DB) error {
+		err := tx.Delete(&Heartbeat{}, "worker_key = ?", k.WorkerKey()).Error
+		if err != nil {
+			return err
+		}
+		heartbeat := Heartbeat{
+			WorkerKey: k.WorkerKey(),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+		return tx.Create(&heartbeat).Error
+	})
+	if err != nil {
+		return fmt.Errorf("init hearbeat failed: %w", err)
 	}
 	return nil
 }
