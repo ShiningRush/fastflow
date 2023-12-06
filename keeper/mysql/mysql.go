@@ -197,22 +197,6 @@ func (k *Keeper) Close() {
 	close(k.closeCh)
 	k.wg.Wait()
 
-	if k.leaderFlag.Load().(bool) {
-		err := k.transaction(func(tx *gorm.DB) error {
-			return tx.Delete(&Election{}, "id = ?", LeaderKey).Error
-		})
-		if err != nil {
-			log.Errorf("deregister leader failed: %s", err)
-		}
-	}
-
-	err := k.transaction(func(tx *gorm.DB) error {
-		return tx.Delete(&Heartbeat{WorkerKey: k.WorkerKey()}).Error
-	})
-	if err != nil {
-		log.Errorf("deregister heart beat failed: %s", err)
-	}
-
 	sqlDB, err := k.gormDB.DB()
 	if err != nil {
 		log.Errorf("get store client failed: %s", err)
@@ -320,7 +304,9 @@ func (k *Keeper) campaign() error {
 
 func (k *Keeper) continueLeader() error {
 	return k.transaction(func(tx *gorm.DB) error {
-		update := tx.Model(&Election{}).Where("id = ?", LeaderKey).Update("updated_at", time.Now())
+		update := tx.Model(&Election{}).
+			Where("id = ?", LeaderKey).Where("worker_key = ?", k.WorkerKey()).
+			Update("updated_at", time.Now())
 		if update.Error != nil {
 			log.Errorf("update failed: %s", update.Error)
 			return fmt.Errorf("update failed: %w", update.Error)
@@ -378,40 +364,15 @@ func (k *Keeper) queryGormStats() {
 }
 
 func (k *Keeper) initHeartBeat() error {
-	if err := k.transaction(func(tx *gorm.DB) error {
-		//h := &Heartbeat{}
-		//err := tx.Select("worker_key").Where("worker_key = ?", k.WorkerKey()).First(h).Error
-		//if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		//	return err
-		//}
-		//if err == nil && h.WorkerKey == k.WorkerKey() {
-		//	return nil
-		//}
-		tx.DryRun = true
-		xx := tx.Delete(&Heartbeat{WorkerKey: k.WorkerKey()}).Statement
-		log.Info(xx.SQL.String())
-		for k, v := range xx.Vars {
-			log.Info("%s: %v", k, v)
-		}
-		return nil
-	}); err != nil {
-		return nil
-	}
 	err := k.transaction(func(tx *gorm.DB) error {
-		//h := &Heartbeat{}
-		//err := tx.Select("worker_key").Where("worker_key = ?", k.WorkerKey()).First(h).Error
-		//if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		//	return err
-		//}
-		//if err == nil && h.WorkerKey == k.WorkerKey() {
-		//	return nil
-		//}
-
-		err := tx.Delete(&Heartbeat{WorkerKey: k.WorkerKey()}).Error
-		if err != nil {
+		h := &Heartbeat{}
+		err := tx.Select("worker_key").Where("worker_key = ?", k.WorkerKey()).First(h).Error
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
-
+		if err == nil && h.WorkerKey == k.WorkerKey() {
+			return nil
+		}
 		heartbeat := Heartbeat{
 			WorkerKey: k.WorkerKey(),
 			CreatedAt: time.Now(),
