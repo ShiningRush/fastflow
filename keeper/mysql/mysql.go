@@ -388,7 +388,7 @@ func (k *Keeper) initHeartBeat() error {
 		//	return nil
 		//}
 
-		err := tx.Delete(&Heartbeat{}, k.WorkerKey()).Error
+		err := tx.Delete(&Heartbeat{WorkerKey: k.WorkerKey()}).Error
 		if err != nil {
 			return err
 		}
