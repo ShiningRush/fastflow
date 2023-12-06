@@ -229,12 +229,14 @@ func (k *Keeper) goElect() {
 
 func (k *Keeper) elect() {
 	if k.leaderFlag.Load().(bool) {
+		log.Info("yyyyyyyyyyyyyyyyyyyyyyyy")
 		if err := k.continueLeader(); err != nil {
 			log.Errorf("continue leader failed: %s", err)
 			k.setLeaderFlag(false)
 			return
 		}
 	} else {
+		log.Info("xxxxxxxxxxxxxxxxxxxxxxxx")
 		if err := k.campaign(); err != nil {
 			log.Errorf("campaign failed: %s", err)
 			return
@@ -305,7 +307,7 @@ func (k *Keeper) campaign() error {
 func (k *Keeper) continueLeader() error {
 	return k.transaction(func(tx *gorm.DB) error {
 		update := tx.Model(&Election{}).
-			Where("id = ?", LeaderKey).
+			Where("id = ?", LeaderKey).Where("worker_key = ?", k.WorkerKey()).
 			Update("updated_at", time.Now())
 		if update.Error != nil {
 			log.Errorf("update failed: %s", update.Error)
