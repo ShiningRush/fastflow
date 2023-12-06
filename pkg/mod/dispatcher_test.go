@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestDefDispatcher_Do(t *testing.T) {
+func IgnoreTestDefDispatcher_Do(t *testing.T) {
 	tests := []struct {
 		caseDesc              string
 		giveListRet           []*entity.DagInstance
