@@ -379,14 +379,20 @@ func (k *Keeper) queryGormStats() {
 
 func (k *Keeper) initHeartBeat() error {
 	err := k.transaction(func(tx *gorm.DB) error {
-		h := &Heartbeat{}
-		err := tx.Select("worker_key").Where("worker_key = ?", k.WorkerKey()).First(h).Error
-		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		//h := &Heartbeat{}
+		//err := tx.Select("worker_key").Where("worker_key = ?", k.WorkerKey()).First(h).Error
+		//if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		//	return err
+		//}
+		//if err == nil && h.WorkerKey == k.WorkerKey() {
+		//	return nil
+		//}
+
+		err := tx.Delete(&Heartbeat{}, k.WorkerKey()).Error
+		if err != nil {
 			return err
 		}
-		if err == nil && h.WorkerKey == k.WorkerKey() {
-			return nil
-		}
+
 		heartbeat := Heartbeat{
 			WorkerKey: k.WorkerKey(),
 			CreatedAt: time.Now(),
