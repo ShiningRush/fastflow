@@ -197,6 +197,22 @@ func (k *Keeper) Close() {
 	close(k.closeCh)
 	k.wg.Wait()
 
+	if k.leaderFlag.Load().(bool) {
+		err := k.transaction(func(tx *gorm.DB) error {
+			return tx.Delete(&Election{}, "id = ?", LeaderKey).Error
+		})
+		if err != nil {
+			log.Errorf("deregister leader failed: %s", err)
+		}
+	}
+
+	err := k.transaction(func(tx *gorm.DB) error {
+		return tx.Delete(&Heartbeat{}, "worker_key = ?", k.WorkerKey()).Error
+	})
+	if err != nil {
+		log.Errorf("deregister heart beat failed: %s", err)
+	}
+
 	sqlDB, err := k.gormDB.DB()
 	if err != nil {
 		log.Errorf("get store client failed: %s", err)
@@ -229,14 +245,12 @@ func (k *Keeper) goElect() {
 
 func (k *Keeper) elect() {
 	if k.leaderFlag.Load().(bool) {
-		log.Info("yyyyyyyyyyyyyyyyyyyyyyyy")
 		if err := k.continueLeader(); err != nil {
 			log.Errorf("continue leader failed: %s", err)
 			k.setLeaderFlag(false)
 			return
 		}
 	} else {
-		log.Info("xxxxxxxxxxxxxxxxxxxxxxxx")
 		if err := k.campaign(); err != nil {
 			log.Errorf("campaign failed: %s", err)
 			return
