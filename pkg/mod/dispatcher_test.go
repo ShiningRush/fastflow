@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// ignore beacuse of using random dispatch
 func IgnoreTestDefDispatcher_Do(t *testing.T) {
 	tests := []struct {
 		caseDesc              string
