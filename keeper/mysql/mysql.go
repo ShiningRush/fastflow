@@ -305,7 +305,7 @@ func (k *Keeper) campaign() error {
 func (k *Keeper) continueLeader() error {
 	return k.transaction(func(tx *gorm.DB) error {
 		update := tx.Model(&Election{}).
-			Where("id = ?", LeaderKey).Where("worker_key = ?", k.WorkerKey()).
+			Where("id = ?", LeaderKey).
 			Update("updated_at", time.Now())
 		if update.Error != nil {
 			log.Errorf("update failed: %s", update.Error)
