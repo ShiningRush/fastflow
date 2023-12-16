@@ -301,11 +301,16 @@ func (t *TaskInstance) Run(params interface{}, act run.Action) (err error) {
 
 // DoPreCheck
 func (t *TaskInstance) DoPreCheck(dagIns *DagInstance) (isActive bool, err error) {
-	if t.PreChecks == nil {
+	if t.PreChecks == nil || t.IsLastState() {
 		return
 	}
 
 	for k, c := range t.PreChecks {
+		// we should not block a continued task
+		if c.Act == ActiveActionBlock && !t.CanBlock() {
+			continue
+		}
+
 		if c.IsMeet(dagIns) {
 			switch c.Act {
 			case ActiveActionSkip:
@@ -321,6 +326,23 @@ func (t *TaskInstance) DoPreCheck(dagIns *DagInstance) (isActive bool, err error
 	}
 
 	return
+}
+
+func (t *TaskInstance) IsLastState() bool {
+	switch t.Status {
+	case TaskInstanceStatusFailed, TaskInstanceStatusCanceled, TaskInstanceStatusSuccess, TaskInstanceStatusSkipped:
+		return true
+	default:
+		return false
+	}
+}
+
+func (t *TaskInstance) CanBlock() bool {
+	if t.Status == TaskInstanceStatusContinue {
+		return false
+	}
+
+	return true
 }
 
 // TaskInstanceStatus
