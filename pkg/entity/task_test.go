@@ -685,6 +685,72 @@ func TestTaskInstance_DoPreCheck(t *testing.T) {
 			wantRet: false,
 			wantErr: fmt.Errorf("pre-check[first] act is invalid: invalid-act"),
 		},
+		{
+			caseDesc: "last-state-task",
+			giveTaskIns: &TaskInstance{
+				PreChecks: PreChecks{
+					"first": {
+						Conditions: []TaskCondition{
+							{
+								Source: TaskConditionSourceVars,
+								Key:    "key1",
+								Values: []string{"value3"},
+								Op:     OperatorIn,
+							},
+						},
+						Act: "block",
+					},
+				},
+				Status: TaskInstanceStatusFailed,
+			},
+			giveDagIns: &DagInstance{
+				Vars: DagInstanceVars{
+					"key1": {Value: "value3"},
+				},
+			},
+			wantRet: false,
+		},
+		{
+			caseDesc: "continue-task",
+			giveTaskIns: &TaskInstance{
+				PreChecks: PreChecks{
+					"first": {
+						Conditions: []TaskCondition{
+							{
+								Source: TaskConditionSourceVars,
+								Key:    "key1",
+								Values: []string{"value3"},
+								Op:     OperatorIn,
+							},
+						},
+						Act: ActiveActionBlock,
+					},
+				},
+				Status: TaskInstanceStatusContinue,
+			},
+			giveDagIns: &DagInstance{
+				Vars: DagInstanceVars{
+					"key1": {Value: "value3"},
+				},
+			},
+			wantRet: false,
+			wantTaskIns: &TaskInstance{
+				PreChecks: PreChecks{
+					"first": {
+						Conditions: []TaskCondition{
+							{
+								Source: TaskConditionSourceVars,
+								Key:    "key1",
+								Values: []string{"value3"},
+								Op:     OperatorIn,
+							},
+						},
+						Act: ActiveActionBlock,
+					},
+				},
+				Status: TaskInstanceStatusContinue,
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -693,6 +759,9 @@ func TestTaskInstance_DoPreCheck(t *testing.T) {
 			assert.Equal(t, tc.wantRet, ret)
 			assert.Equal(t, tc.wantErr, err)
 			if err == nil {
+				if tc.wantTaskIns == nil {
+					return
+				}
 				assert.Equal(t, tc.wantTaskIns, tc.giveTaskIns)
 			}
 		})
