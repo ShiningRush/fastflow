@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"gorm.io/gorm/clause"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -154,7 +155,7 @@ func (k *Keeper) initWorkerKey() error {
 			}
 		}
 		k.keyNumber = idGenerator.Counter
-		if k.keyNumber > 2^16-1 {
+		if k.keyNumber > int(math.Pow(2, 16))-1 {
 			return fmt.Errorf("worker number is too big, need to clear id_generator table")
 		}
 		log.Info("generate worker id is %d", k.keyNumber)
