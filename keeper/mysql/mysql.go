@@ -100,9 +100,8 @@ func (k *Keeper) Init() error {
 	}
 	k.gormDB = db
 
-	err2 := k.initWorkerKey()
-	if err2 != nil {
-		return err2
+	if err := k.initWorkerKey(); err != nil {
+		return err
 	}
 	store.InitFlakeGenerator(uint16(k.WorkerNumber()))
 	if k.opt.WatcherFlag {
