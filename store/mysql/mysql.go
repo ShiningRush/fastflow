@@ -446,7 +446,7 @@ func (s *Store) fillInstanceTags(ret []*entity.DagInstance) error {
 		return nil
 	}
 	for _, dagInstance := range ret {
-		if tags, ok := tagMap[dagInstance.DagID]; ok {
+		if tags, ok := tagMap[dagInstance.ID]; ok {
 			dagInstance.Tags = tags
 		}
 	}
@@ -456,7 +456,7 @@ func (s *Store) fillInstanceTags(ret []*entity.DagInstance) error {
 func (s *Store) queryInstanceTags(ret []*entity.DagInstance) (map[string][]entity.DagInstanceTag, error) {
 	var dagInsIDs []string
 	for _, instance := range ret {
-		dagInsIDs = append(dagInsIDs, instance.DagID)
+		dagInsIDs = append(dagInsIDs, instance.ID)
 	}
 
 	var tags []*entity.DagInstanceTag
