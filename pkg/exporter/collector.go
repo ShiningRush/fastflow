@@ -147,6 +147,7 @@ func (c *ExecutorCollector) cacheFailedDagIns(completeEvent *event.TaskCompleted
 // Describe
 func (c *ExecutorCollector) Describe(ch chan<- *prometheus.Desc) {
 	prometheus.DescribeByCollect(c, ch)
+	ch <- failedDagInsDesc
 }
 
 // Collect
