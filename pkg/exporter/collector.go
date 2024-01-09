@@ -203,7 +203,7 @@ func (c *ExecutorCollector) pushFailedDagInsInfo(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(
 			failedDagInsDesc,
 			prometheus.GaugeValue,
-			1,
+			float64(1),
 			mod.GetKeeper().WorkerKey(),
 			dagInsID,
 			info.BusinessType,
