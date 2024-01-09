@@ -417,6 +417,10 @@ func (s *Store) ListDagInstanceWithoutFilterTags(input *mod.ListDagInstanceInput
 		if input.HasCmd {
 			tx = tx.Where("cmd is not null")
 		}
+		if len(input.DagID) > 0 {
+			tx = tx.Where("dag_id = ?", input.DagID)
+		}
+
 		if input.Limit > 0 {
 			tx = tx.Limit(int(input.Limit))
 		}
