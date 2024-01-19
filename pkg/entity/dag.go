@@ -92,7 +92,7 @@ type DagInstance struct {
 	Worker    string            `json:"worker,omitempty" bson:"worker,omitempty" gorm:"type:VARCHAR(256)"`
 	Vars      DagInstanceVars   `json:"vars,omitempty" bson:"vars,omitempty" gorm:"type:JSON;serializer:json"`
 	ShareData *ShareData        `json:"shareData,omitempty" bson:"shareData,omitempty" gorm:"type:JSON;serializer:json"`
-	Status    DagInstanceStatus `json:"status,omitempty" bson:"status,omitempty" gorm:"type:enum('init', 'scheduled', 'running', 'blocked', 'failed', 'success');index;not null;"`
+	Status    DagInstanceStatus `json:"status,omitempty" bson:"status,omitempty" gorm:"type:enum('init', 'scheduled', 'running', 'blocked', 'failed', 'success', 'canceled');index;not null;"`
 	Reason    string            `json:"reason,omitempty" bson:"reason,omitempty" gorm:"type:TEXT"`
 	Cmd       *Command          `json:"cmd,omitempty" bson:"cmd,omitempty" gorm:"type:JSON;serializer:json"`
 	Tags      []DagInstanceTag  `json:"tags,omitempty" bson:"tags,omitempty" gorm:"-"`
@@ -171,7 +171,7 @@ func (d *ShareData) Set(key string, val string) {
 type DagInstanceVars map[string]DagInstanceVar
 
 // Cancel a task, it is just set a command, command will execute by Parser
-func (dagIns *DagInstance) Cancel(taskInsIds []string) error {
+func (dagIns *DagInstance) CancelTask(taskInsIds []string) error {
 	if dagIns.Status != DagInstanceStatusRunning {
 		return fmt.Errorf("you can only cancel a running dag instance")
 	}
@@ -196,6 +196,7 @@ type DagInstanceLifecycleHook struct {
 	BeforeRun      DagInstanceHookFunc
 	BeforeSuccess  DagInstanceHookFunc
 	BeforeFail     DagInstanceHookFunc
+	BeforeCancel   DagInstanceHookFunc
 	BeforeBlock    DagInstanceHookFunc
 	BeforeRetry    DagInstanceHookFunc
 	BeforeContinue DagInstanceHookFunc
@@ -241,6 +242,13 @@ func (dagIns *DagInstance) Fail(reason string) {
 	dagIns.Status = DagInstanceStatusFailed
 }
 
+// Cancel the dag instance
+func (dagIns *DagInstance) Cancel(reason string) {
+	dagIns.Reason = reason
+	dagIns.executeHook(HookDagInstance.BeforeCancel)
+	dagIns.Status = DagInstanceStatusCanceled
+}
+
 // Block the dag instance
 func (dagIns *DagInstance) Block(reason string) {
 	dagIns.executeHook(HookDagInstance.BeforeBlock)
@@ -284,7 +292,7 @@ func (dagIns *DagInstance) executeHook(hookFunc DagInstanceHookFunc) {
 
 // CanChange indicate if the dag instance can modify status
 func (dagIns *DagInstance) CanModifyStatus() bool {
-	return dagIns.Status != DagInstanceStatusFailed
+	return dagIns.Status != DagInstanceStatusCanceled
 }
 
 // Render variables
@@ -324,6 +332,7 @@ const (
 	DagInstanceStatusBlocked   DagInstanceStatus = "blocked"
 	DagInstanceStatusFailed    DagInstanceStatus = "failed"
 	DagInstanceStatusSuccess   DagInstanceStatus = "success"
+	DagInstanceStatusCanceled  DagInstanceStatus = "canceled"
 )
 
 // Trigger
