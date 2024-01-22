@@ -130,10 +130,11 @@ type TaskNode struct {
 type TreeStatus string
 
 const (
-	TreeStatusRunning TreeStatus = "running"
-	TreeStatusSuccess TreeStatus = "success"
-	TreeStatusFailed  TreeStatus = "failed"
-	TreeStatusBlocked TreeStatus = "blocked"
+	TreeStatusRunning  TreeStatus = "running"
+	TreeStatusSuccess  TreeStatus = "success"
+	TreeStatusFailed   TreeStatus = "failed"
+	TreeStatusCanceled TreeStatus = "canceled"
+	TreeStatusBlocked  TreeStatus = "blocked"
 )
 
 // HasCycle
@@ -185,8 +186,12 @@ func bfsCheckCycle(waitQueue []*TaskNode, visited map[string]struct{}, incomplet
 func (t *TaskNode) ComputeStatus() (status TreeStatus, srcTaskInsId string) {
 	walkNode(t, func(node *TaskNode) bool {
 		switch node.Status {
-		case entity.TaskInstanceStatusFailed, entity.TaskInstanceStatusCanceled:
+		case entity.TaskInstanceStatusFailed:
 			status = TreeStatusFailed
+			srcTaskInsId = node.TaskInsID
+			return true
+		case entity.TaskInstanceStatusCanceled:
+			status = TreeStatusCanceled
 			srcTaskInsId = node.TaskInsID
 			return true
 		case entity.TaskInstanceStatusBlocked:

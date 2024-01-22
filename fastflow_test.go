@@ -87,7 +87,7 @@ func Test_readDagFromDir(t *testing.T) {
 			givePathDagMap: map[string][]byte{
 				"dag1": []byte(`tasks: 123`),
 			},
-			wantErr: fmt.Errorf("unmarshal dag1 failed: %w", &yaml.TypeError{Errors: []string{"line 1: cannot unmarshal !!int `123` into []entity.Task"}}),
+			wantErr: fmt.Errorf("unmarshal dag1 failed: %w", &yaml.TypeError{Errors: []string{"line 1: cannot unmarshal !!int `123` into entity.DagTasks"}}),
 		},
 		{
 			caseDesc:  "normal",

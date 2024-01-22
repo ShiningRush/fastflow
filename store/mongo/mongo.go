@@ -27,7 +27,7 @@ type StoreOption struct {
 	Database string
 	// Timeout access mongo timeout.default 5s
 	Timeout time.Duration
-	// the prefix will append to the database
+	// the prefix will append to the schema name
 	Prefix string
 }
 

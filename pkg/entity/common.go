@@ -9,9 +9,9 @@ import (
 
 // BaseInfo
 type BaseInfo struct {
-	ID        string `yaml:"id" json:"id" bson:"_id"`
-	CreatedAt int64  `yaml:"createdAt" json:"createdAt" bson:"createdAt"`
-	UpdatedAt int64  `yaml:"updatedAt" json:"updatedAt" bson:"updatedAt"`
+	ID        string `yaml:"id" json:"id" bson:"_id" gorm:"primaryKey;type:VARCHAR(256);not null"`
+	CreatedAt int64  `yaml:"createdAt" json:"createdAt" bson:"createdAt" gorm:"autoCreateTime;type:bigint(20) unsigned;not null;<-:create"`
+	UpdatedAt int64  `yaml:"updatedAt" json:"updatedAt" bson:"updatedAt" gorm:"autoUpdateTime;type:bigint(20) unsigned;index;"`
 }
 
 // GetBaseInfo getter
@@ -24,7 +24,9 @@ func (b *BaseInfo) Initial() {
 	if b.ID == "" {
 		b.ID = store.NextStringID()
 	}
-	b.CreatedAt = time.Now().Unix()
+	if b.CreatedAt == 0 {
+		b.CreatedAt = time.Now().Unix()
+	}
 	b.UpdatedAt = time.Now().Unix()
 }
 

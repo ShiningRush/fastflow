@@ -182,6 +182,8 @@ func (p *DefParser) InitialDagIns(dagIns *entity.DagInstance) {
 			tree.DagIns.Block(fmt.Sprintf("initial blocked because task ins[%s]", taskInsId))
 		case TreeStatusFailed:
 			tree.DagIns.Fail(fmt.Sprintf("initial failed because task ins[%s]", taskInsId))
+		case TreeStatusCanceled:
+			tree.DagIns.Cancel(fmt.Sprintf("initial canceled because task ins[%s]", taskInsId))
 		default:
 			log.Warn("initial a dag which has no executable tasks",
 				utils.LogKeyDagInsID, dagIns.ID)
@@ -228,7 +230,9 @@ func (p *DefParser) executeNext(taskIns *entity.TaskInstance) error {
 		case TreeStatusRunning:
 			return nil
 		case TreeStatusFailed:
-			tree.DagIns.Fail(fmt.Sprintf("task[%s] failed or canceled", taskId))
+			tree.DagIns.Fail(fmt.Sprintf("task[%s] failed", taskId))
+		case TreeStatusCanceled:
+			tree.DagIns.Cancel(fmt.Sprintf("task[%s] canceled", taskId))
 		case TreeStatusBlocked:
 			tree.DagIns.Block(fmt.Sprintf("task[%s] blocked", taskId))
 		case TreeStatusSuccess:
@@ -294,7 +298,7 @@ func (p *DefParser) cancelChildTasks(tree *TaskTree, ids []string) error {
 	if !tree.DagIns.CanModifyStatus() {
 		return nil
 	}
-	tree.DagIns.Fail(fmt.Sprintf("task instance[%s] canceled", strings.Join(ids, ",")))
+	tree.DagIns.Cancel(fmt.Sprintf("task instance[%s] canceled", strings.Join(ids, ",")))
 	return GetStore().PatchDagIns(tree.DagIns)
 }
 
