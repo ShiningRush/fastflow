@@ -292,7 +292,7 @@ func (dagIns *DagInstance) executeHook(hookFunc DagInstanceHookFunc) {
 
 // CanChange indicate if the dag instance can modify status
 func (dagIns *DagInstance) CanModifyStatus() bool {
-	return dagIns.Status != DagInstanceStatusCanceled
+	return dagIns.Status != DagInstanceStatusCanceled && dagIns.Status != DagInstanceStatusFailed
 }
 
 // Render variables
