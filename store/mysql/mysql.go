@@ -417,6 +417,10 @@ func (s *Store) ListDagInstanceWithoutFilterTags(input *mod.ListDagInstanceInput
 		if input.HasCmd {
 			tx = tx.Where("cmd is not null")
 		}
+		if len(input.DagID) > 0 {
+			tx = tx.Where("dag_id = ?", input.DagID)
+		}
+
 		if input.Limit > 0 {
 			tx = tx.Limit(int(input.Limit))
 		}
@@ -426,7 +430,58 @@ func (s *Store) ListDagInstanceWithoutFilterTags(input *mod.ListDagInstanceInput
 		log.Errorf("list dag instance input: %v, failed: %s", input, err)
 		return nil, err
 	}
+	if len(ret) == 0 {
+		return ret, nil
+	}
+
+	err = s.fillInstanceTags(ret)
+	if err != nil {
+		return nil, err
+	}
 	return ret, nil
+}
+
+func (s *Store) fillInstanceTags(ret []*entity.DagInstance) error {
+	tagMap, err := s.queryInstanceTags(ret)
+	if err != nil {
+		return err
+	}
+	if len(tagMap) == 0 {
+		return nil
+	}
+	for _, dagInstance := range ret {
+		if tags, ok := tagMap[dagInstance.ID]; ok {
+			dagInstance.Tags = tags
+		}
+	}
+	return nil
+}
+
+func (s *Store) queryInstanceTags(ret []*entity.DagInstance) (map[string][]entity.DagInstanceTag, error) {
+	var dagInsIDs []string
+	for _, instance := range ret {
+		dagInsIDs = append(dagInsIDs, instance.ID)
+	}
+
+	var tags []*entity.DagInstanceTag
+	err := s.transaction(func(tx *gorm.DB) error {
+		tx = tx.Where("dag_ins_id in (?)", dagInsIDs)
+		return tx.Find(&tags).Error
+	})
+	if err != nil {
+		log.Errorf("list dag instance tags error %s", err)
+		return nil, err
+	}
+
+	if len(tags) == 0 {
+		return nil, nil
+	}
+
+	tagMap := make(map[string][]entity.DagInstanceTag)
+	for i := range tags {
+		tagMap[tags[i].DagInsId] = append(tagMap[tags[i].DagInsId], *tags[i])
+	}
+	return tagMap, nil
 }
 
 func (s *Store) ListTaskInstance(input *mod.ListTaskInstanceInput) ([]*entity.TaskInstance, error) {

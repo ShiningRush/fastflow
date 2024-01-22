@@ -2,6 +2,8 @@ package mysql
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Heartbeat struct {
@@ -14,4 +16,9 @@ type Election struct {
 	ID        string    `gorm:"primaryKey;type:VARCHAR(256);not null"`
 	WorkerKey string    `gorm:"type:VARCHAR(256);not null"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime;type:timestamp;"`
+}
+
+type IDGenerator struct {
+	gorm.Model
+	Counter int `gorm:"default:256"`
 }

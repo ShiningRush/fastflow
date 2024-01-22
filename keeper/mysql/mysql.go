@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gorm.io/gorm/clause"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -76,7 +78,6 @@ func (k *Keeper) Init() error {
 	if err := k.readOpt(); err != nil {
 		return err
 	}
-	store.InitFlakeGenerator(uint16(k.WorkerNumber()))
 
 	db, err := gorm.Open(gormDriver.Open(k.opt.MySQLConfig.FormatDSN()), k.opt.GormConfig)
 	if err != nil {
@@ -93,12 +94,17 @@ func (k *Keeper) Init() error {
 	sqlDB.SetMaxOpenConns(k.opt.PoolConfig.MaxOpenConns)
 
 	if k.opt.MigrationSwitch {
-		err = db.AutoMigrate(&Heartbeat{}, &Election{})
+		err = db.AutoMigrate(&Heartbeat{}, &Election{}, &IDGenerator{})
 		if err != nil {
 			return err
 		}
 	}
 	k.gormDB = db
+
+	if err := k.initWorkerKey(); err != nil {
+		return err
+	}
+	store.InitFlakeGenerator(uint16(k.WorkerNumber()))
 	if k.opt.WatcherFlag {
 		return nil
 	}
@@ -117,6 +123,45 @@ func (k *Keeper) Init() error {
 	k.firstInitWg.Wait()
 	k.initCompleted.Store(true)
 	return nil
+}
+
+func (k *Keeper) initWorkerKey() error {
+	// if watcher flag is true, then we don't need to generate a key by mysql
+	if !k.opt.WatcherFlag {
+		number, err := keeper.CheckWorkerKey(k.opt.Key)
+		if err != nil {
+			return err
+		}
+		k.keyNumber = number
+		return nil
+	}
+
+	return k.transaction(func(tx *gorm.DB) error {
+		var idGenerator IDGenerator
+		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("id = ?", 1).
+			First(&idGenerator).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				idGenerator = IDGenerator{
+					Model:   gorm.Model{ID: 1},
+					Counter: 256,
+				}
+				if err := tx.Create(&idGenerator).Error; err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		}
+		k.keyNumber = idGenerator.Counter
+		if k.keyNumber > int(math.Pow(2, 16))-1 {
+			return fmt.Errorf("worker number is too big, need to clear id_generator table")
+		}
+		log.Info("generate worker id is %d", k.keyNumber)
+		idGenerator.Counter++
+		return tx.Save(&idGenerator).Error
+	})
 }
 
 func (k *Keeper) setLeaderFlag(isLeader bool) {
@@ -304,7 +349,7 @@ func (k *Keeper) campaign() error {
 			return tx.Create(election).Error
 		})
 		if err != nil {
-			if err == gorm.ErrDuplicatedKey {
+			if errors.Is(err, gorm.ErrDuplicatedKey) {
 				log.Infof("campaign failed")
 				return nil
 			}
@@ -412,13 +457,7 @@ func (k *Keeper) readOpt() error {
 	if k.opt.Timeout == 0 {
 		k.opt.Timeout = time.Second * 2
 	}
-	number, err := keeper.CheckWorkerKey(k.opt.Key)
-	if err != nil {
-		return err
-	}
-	k.keyNumber = number
-
-	err = k.readMySQLConfigOpt()
+	err := k.readMySQLConfigOpt()
 	if err != nil {
 		return err
 	}

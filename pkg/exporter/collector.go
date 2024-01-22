@@ -3,7 +3,6 @@ package exporter
 import (
 	"context"
 	"net/http"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -25,7 +24,12 @@ var (
 	failedTaskCountDesc = prometheus.NewDesc(
 		"fastflow_executor_task_failed_total",
 		"The count of already failed task.",
-		[]string{"worker_key", "dag_ins_ids"}, nil,
+		[]string{"worker_key"}, nil,
+	)
+	failedDagInsDesc = prometheus.NewDesc(
+		"fastflow_executor_dag_ins_failed",
+		"The count of already failed task.",
+		[]string{"worker_key", "dag_ins_id", "business_type", "business_action", "business_id"}, nil,
 	)
 	successTaskCountDesc = prometheus.NewDesc(
 		"fastflow_executor_task_success_total",
@@ -64,14 +68,20 @@ var (
 type ExecutorCollector struct {
 	rwMutex sync.RWMutex
 
-	RunningTaskCount   int64
-	SuccessTaskCount   uint64
-	FailedTaskCount    uint64
-	FailedDagInsIDs    []string
-	CompletedTaskCount uint64
+	RunningTaskCount      int64
+	SuccessTaskCount      uint64
+	FailedTaskCount       uint64
+	FailedTaskDagInsInfos map[string]DagInsInfo
+	CompletedTaskCount    uint64
 
 	ParseElapsedMs   int64
 	ParseFailedCount int64
+}
+
+type DagInsInfo struct {
+	BusinessType   string
+	BusinessAction string
+	BusinessID     string
 }
 
 // Topic is goevent's topic
@@ -93,9 +103,7 @@ func (c *ExecutorCollector) Handle(cxt context.Context, e goevent.Event) {
 		switch completeEvent.TaskIns.Status {
 		case entity.TaskInstanceStatusFailed:
 			atomic.AddUint64(&c.FailedTaskCount, 1)
-			c.rwMutex.Lock()
-			c.FailedDagInsIDs = append(c.FailedDagInsIDs, completeEvent.TaskIns.DagInsID)
-			c.rwMutex.Unlock()
+			c.cacheFailedDagIns(completeEvent)
 		case entity.TaskInstanceStatusSuccess:
 			atomic.AddUint64(&c.SuccessTaskCount, 1)
 		}
@@ -109,9 +117,37 @@ func (c *ExecutorCollector) Handle(cxt context.Context, e goevent.Event) {
 	}
 }
 
+func (c *ExecutorCollector) cacheFailedDagIns(completeEvent *event.TaskCompleted) {
+	c.rwMutex.Lock()
+	if len(c.FailedTaskDagInsInfos) >= 500 {
+		return
+	}
+	if c.FailedTaskDagInsInfos == nil {
+		c.FailedTaskDagInsInfos = map[string]DagInsInfo{}
+	}
+	dagInsInfo := DagInsInfo{}
+	if completeEvent.TaskIns.RelatedDagInstance != nil {
+		tags := completeEvent.TaskIns.RelatedDagInstance.Tags
+		for _, tag := range tags {
+			if tag.Key == "business_type" {
+				dagInsInfo.BusinessType = tag.Value
+			}
+			if tag.Key == "business_action" {
+				dagInsInfo.BusinessAction = tag.Value
+			}
+			if tag.Key == "business_id" {
+				dagInsInfo.BusinessID = tag.Value
+			}
+		}
+		c.FailedTaskDagInsInfos[completeEvent.TaskIns.RelatedDagInstance.ID] = dagInsInfo
+	}
+	c.rwMutex.Unlock()
+}
+
 // Describe
 func (c *ExecutorCollector) Describe(ch chan<- *prometheus.Desc) {
 	prometheus.DescribeByCollect(c, ch)
+	ch <- failedDagInsDesc
 }
 
 // Collect
@@ -128,16 +164,12 @@ func (c *ExecutorCollector) Collect(ch chan<- prometheus.Metric) {
 		float64(c.CompletedTaskCount),
 		mod.GetKeeper().WorkerKey(),
 	)
-	c.rwMutex.Lock()
-	dagInsIdStr := strings.Join(c.FailedDagInsIDs, ",")
-	c.FailedDagInsIDs = []string{}
-	c.rwMutex.Unlock()
+	c.pushFailedDagInsInfo(ch)
 	ch <- prometheus.MustNewConstMetric(
 		failedTaskCountDesc,
 		prometheus.CounterValue,
 		float64(c.FailedTaskCount),
 		mod.GetKeeper().WorkerKey(),
-		dagInsIdStr,
 	)
 	ch <- prometheus.MustNewConstMetric(
 		successTaskCountDesc,
@@ -158,6 +190,28 @@ func (c *ExecutorCollector) Collect(ch chan<- prometheus.Metric) {
 		float64(c.ParseFailedCount),
 		mod.GetKeeper().WorkerKey(),
 	)
+}
+
+func (c *ExecutorCollector) pushFailedDagInsInfo(ch chan<- prometheus.Metric) {
+	c.rwMutex.Lock()
+	tempMap := map[string]DagInsInfo{}
+	for k, v := range c.FailedTaskDagInsInfos {
+		tempMap[k] = v
+	}
+	c.FailedTaskDagInsInfos = map[string]DagInsInfo{}
+	c.rwMutex.Unlock()
+	for dagInsID, info := range tempMap {
+		ch <- prometheus.MustNewConstMetric(
+			failedDagInsDesc,
+			prometheus.GaugeValue,
+			float64(1),
+			mod.GetKeeper().WorkerKey(),
+			dagInsID,
+			info.BusinessType,
+			info.BusinessAction,
+			info.BusinessID,
+		)
+	}
 }
 
 // ExecutorCollector

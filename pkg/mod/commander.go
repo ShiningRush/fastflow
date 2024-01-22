@@ -111,7 +111,7 @@ func (c *DefCommander) CancelTask(taskInsIds []string, ops ...CommandOptSetter) 
 		if !isWorkerAlive {
 			return fmt.Errorf("worker is not healthy, you can not cancel it")
 		}
-		return dagIns.Cancel(taskInsIds)
+		return dagIns.CancelTask(taskInsIds)
 	}, opt)
 }
 
