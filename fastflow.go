@@ -152,7 +152,7 @@ func (l *LeaderChangedHandler) Handle(cxt context.Context, e goevent.Event) {
 		log.Println("leader initial")
 	}
 	// continue leader failed
-	if !lcEvent.IsLeader && len(l.leaderCloser) == 0 {
+	if !lcEvent.IsLeader && len(l.leaderCloser) != 0 {
 		l.Close()
 	}
 }
