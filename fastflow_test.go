@@ -1,11 +1,13 @@
 package fastflow
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/shiningrush/fastflow/pkg/entity"
+	"github.com/shiningrush/fastflow/pkg/event"
 	"github.com/shiningrush/fastflow/pkg/mod"
 	"github.com/shiningrush/fastflow/pkg/utils"
 	"github.com/stretchr/testify/assert"
@@ -188,5 +190,50 @@ tasks:
 			assert.Equal(t, tc.wantErr, err)
 			assert.Equal(t, tc.calledEnsured, called)
 		})
+	}
+}
+
+func Test_LeaderChangeHandler(t *testing.T) {
+	tests := []struct {
+		isLeader      bool
+		calledEnsured []bool
+		closerLenth   int
+	}{
+		{
+			isLeader:      true,
+			calledEnsured: []bool{},
+			closerLenth:   1,
+		},
+		{
+			isLeader:      false,
+			calledEnsured: []bool{true},
+			closerLenth:   0,
+		},
+	}
+
+	for _, tc := range tests {
+		called := []bool{}
+		keeper := &mod.MockKeeper{}
+		handler := &LeaderChangedHandler{
+			opt: &InitialOption{
+				Keeper: keeper,
+			},
+			leaderCloser: []mod.Closer{},
+		}
+
+		closer := &mod.MockCloser{}
+		closer.On("Close").Run(func(args mock.Arguments) {
+			called = append(called, true)
+		}).Return(nil)
+		handler.leaderCloser = append(handler.leaderCloser, closer)
+
+		mockEvent := &event.LeaderChanged{IsLeader: tc.isLeader, WorkerKey: "worker-key"}
+		ctx := context.Background()
+
+		// Simulate the event that leads to leadership
+		handler.Handle(ctx, mockEvent)
+
+		assert.Equal(t, tc.calledEnsured, called)
+		assert.Equal(t, tc.closerLenth, len(handler.leaderCloser))
 	}
 }
