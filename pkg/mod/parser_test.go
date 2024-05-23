@@ -48,7 +48,7 @@ func TestDefParser_cancelChildTask(t *testing.T) {
 				{BaseInfo: entity.BaseInfo{ID: "task5"}, Status: entity.TaskInstanceStatusCanceled, Reason: ReasonParentCancel},
 			},
 			wantPatchDagCalled: true,
-			wantPatchDagIns:    &entity.DagInstance{Status: entity.DagInstanceStatusFailed, Reason: "task instance[task4,task5] canceled"},
+			wantPatchDagIns:    &entity.DagInstance{Status: entity.DagInstanceStatusCanceled, Reason: "task instance[task4,task5] canceled"},
 			wantRoot: &TaskNode{
 				TaskInsID: virtualTaskRootID,
 				Status:    entity.TaskInstanceStatusSuccess,
@@ -88,7 +88,7 @@ func TestDefParser_cancelChildTask(t *testing.T) {
 				{BaseInfo: entity.BaseInfo{ID: "task2"}, Status: entity.TaskInstanceStatusCanceled, Reason: ReasonParentCancel},
 			},
 			wantPatchDagCalled: true,
-			wantPatchDagIns:    &entity.DagInstance{Status: entity.DagInstanceStatusFailed, Reason: "task instance[task2] canceled"},
+			wantPatchDagIns:    &entity.DagInstance{Status: entity.DagInstanceStatusCanceled, Reason: "task instance[task2] canceled"},
 			wantRoot: &TaskNode{
 				TaskInsID: virtualTaskRootID,
 				Status:    entity.TaskInstanceStatusSuccess,

@@ -21,13 +21,15 @@ func NewDag() *Dag {
 // Dag
 type Dag struct {
 	BaseInfo `yaml:",inline" json:",inline" bson:"inline"`
-	Name     string    `yaml:"name,omitempty" json:"name,omitempty" bson:"name,omitempty"`
-	Desc     string    `yaml:"desc,omitempty" json:"desc,omitempty" bson:"desc,omitempty"`
-	Cron     string    `yaml:"cron,omitempty" json:"cron,omitempty" bson:"cron,omitempty"`
-	Vars     DagVars   `yaml:"vars,omitempty" json:"vars,omitempty" bson:"vars,omitempty"`
-	Status   DagStatus `yaml:"status,omitempty" json:"status,omitempty" bson:"status,omitempty"`
-	Tasks    []Task    `yaml:"tasks,omitempty" json:"tasks,omitempty" bson:"tasks,omitempty"`
+	Name     string    `yaml:"name,omitempty" json:"name,omitempty" bson:"name,omitempty" gorm:"type:VARCHAR(128);not null"`
+	Desc     string    `yaml:"desc,omitempty" json:"desc,omitempty" bson:"desc,omitempty" gorm:"type:VARCHAR(256);"`
+	Cron     string    `yaml:"cron,omitempty" json:"cron,omitempty" bson:"cron,omitempty" gorm:"-"`
+	Vars     DagVars   `yaml:"vars,omitempty" json:"vars,omitempty" bson:"vars,omitempty" gorm:"type:JSON;serializer:json"`
+	Status   DagStatus `yaml:"status,omitempty" json:"status,omitempty" bson:"status,omitempty" gorm:"type:enum('normal', 'stopped');not null;"`
+	Tasks    DagTasks  `yaml:"tasks,omitempty" json:"tasks,omitempty" bson:"tasks,omitempty" gorm:"type:JSON;not null;serializer:json"`
 }
+
+type DagTasks []Task
 
 // SpecifiedVar
 type SpecifiedVar struct {
@@ -85,14 +87,15 @@ const (
 // DagInstance
 type DagInstance struct {
 	BaseInfo  `bson:"inline"`
-	DagID     string            `json:"dagId,omitempty" bson:"dagId,omitempty"`
-	Trigger   Trigger           `json:"trigger,omitempty" bson:"trigger,omitempty"`
-	Worker    string            `json:"worker,omitempty" bson:"worker,omitempty"`
-	Vars      DagInstanceVars   `json:"vars,omitempty" bson:"vars,omitempty"`
-	ShareData *ShareData        `json:"shareData,omitempty" bson:"shareData,omitempty"`
-	Status    DagInstanceStatus `json:"status,omitempty" bson:"status,omitempty"`
-	Reason    string            `json:"reason,omitempty" bson:"reason,omitempty"`
-	Cmd       *Command          `json:"cmd,omitempty" bson:"cmd,omitempty"`
+	DagID     string            `json:"dagId,omitempty" bson:"dagId,omitempty" gorm:"type:VARCHAR(256);not null"`
+	Trigger   Trigger           `json:"trigger,omitempty" bson:"trigger,omitempty" gorm:"type:enum('manually', 'cron');not null;"`
+	Worker    string            `json:"worker,omitempty" bson:"worker,omitempty" gorm:"type:VARCHAR(256)"`
+	Vars      DagInstanceVars   `json:"vars,omitempty" bson:"vars,omitempty" gorm:"type:JSON;serializer:json"`
+	ShareData *ShareData        `json:"shareData,omitempty" bson:"shareData,omitempty" gorm:"type:JSON;serializer:json"`
+	Status    DagInstanceStatus `json:"status,omitempty" bson:"status,omitempty" gorm:"type:enum('init', 'scheduled', 'running', 'blocked', 'failed', 'success', 'canceled');index;not null;"`
+	Reason    string            `json:"reason,omitempty" bson:"reason,omitempty" gorm:"type:TEXT"`
+	Cmd       *Command          `json:"cmd,omitempty" bson:"cmd,omitempty" gorm:"type:JSON;serializer:json"`
+	Tags      []DagInstanceTag  `json:"tags,omitempty" bson:"tags,omitempty" gorm:"-"`
 }
 
 var (
@@ -168,7 +171,7 @@ func (d *ShareData) Set(key string, val string) {
 type DagInstanceVars map[string]DagInstanceVar
 
 // Cancel a task, it is just set a command, command will execute by Parser
-func (dagIns *DagInstance) Cancel(taskInsIds []string) error {
+func (dagIns *DagInstance) CancelTask(taskInsIds []string) error {
 	if dagIns.Status != DagInstanceStatusRunning {
 		return fmt.Errorf("you can only cancel a running dag instance")
 	}
@@ -193,6 +196,7 @@ type DagInstanceLifecycleHook struct {
 	BeforeRun      DagInstanceHookFunc
 	BeforeSuccess  DagInstanceHookFunc
 	BeforeFail     DagInstanceHookFunc
+	BeforeCancel   DagInstanceHookFunc
 	BeforeBlock    DagInstanceHookFunc
 	BeforeRetry    DagInstanceHookFunc
 	BeforeContinue DagInstanceHookFunc
@@ -238,6 +242,13 @@ func (dagIns *DagInstance) Fail(reason string) {
 	dagIns.Status = DagInstanceStatusFailed
 }
 
+// Cancel the dag instance
+func (dagIns *DagInstance) Cancel(reason string) {
+	dagIns.Reason = reason
+	dagIns.executeHook(HookDagInstance.BeforeCancel)
+	dagIns.Status = DagInstanceStatusCanceled
+}
+
 // Block the dag instance
 func (dagIns *DagInstance) Block(reason string) {
 	dagIns.executeHook(HookDagInstance.BeforeBlock)
@@ -281,7 +292,7 @@ func (dagIns *DagInstance) executeHook(hookFunc DagInstanceHookFunc) {
 
 // CanChange indicate if the dag instance can modify status
 func (dagIns *DagInstance) CanModifyStatus() bool {
-	return dagIns.Status != DagInstanceStatusFailed
+	return dagIns.Status != DagInstanceStatusCanceled && dagIns.Status != DagInstanceStatusFailed
 }
 
 // Render variables
@@ -321,6 +332,7 @@ const (
 	DagInstanceStatusBlocked   DagInstanceStatus = "blocked"
 	DagInstanceStatusFailed    DagInstanceStatus = "failed"
 	DagInstanceStatusSuccess   DagInstanceStatus = "success"
+	DagInstanceStatusCanceled  DagInstanceStatus = "canceled"
 )
 
 // Trigger
@@ -330,3 +342,24 @@ const (
 	TriggerManually Trigger = "manually"
 	TriggerCron     Trigger = "cron"
 )
+
+// DagInstanceTag
+type DagInstanceTag struct {
+	BaseInfo `bson:"inline"`
+	DagInsId string `json:"dagInsId,omitempty" bson:"dagInsId,omitempty" gorm:"type:VARCHAR(256);not null;uniqueIndex:idx_dag_instance_tags_dag_ins_id_key,priority:1"`
+	Key      string `json:"key,omitempty" bson:"key,omitempty" gorm:"type:VARCHAR(256);not null;uniqueIndex:idx_dag_instance_tags_dag_ins_id_key,priority:10;index:idx_dag_instance_tags_key_value,priority:1"`
+	Value    string `json:"value,omitempty" bson:"value,omitempty" gorm:"type:VARCHAR(256);not null;index:idx_dag_instance_tags_key_value,priority:10"`
+}
+
+func NewDagInstanceTags(tags map[string]string) []DagInstanceTag {
+	var result []DagInstanceTag
+	if len(tags) == 0 {
+		return result
+	}
+	for k, v := range tags {
+		result = append(result, DagInstanceTag{
+			Key: k, Value: v,
+		})
+	}
+	return result
+}

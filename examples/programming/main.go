@@ -76,7 +76,8 @@ func createDagAndInstance() {
 		BaseInfo: entity.BaseInfo{
 			ID: "test-dag",
 		},
-		Name: "test",
+		Name:   "test",
+		Status: entity.DagStatusNormal,
 		Tasks: []entity.Task{
 			{ID: "task1", ActionName: "PrintAction"},
 			{ID: "task2", ActionName: "PrintAction", DependOn: []string{"task1"}},

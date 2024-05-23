@@ -269,7 +269,7 @@ func TestDefCommander_OpTask(t *testing.T) {
 			caseDesc:       "unhealthy worker",
 			giveTaskInsID:  []string{"test task"},
 			giveIsAlive:    false,
-			giveAliveNodes: []string{"1", "2"},
+			giveAliveNodes: []string{"2"},
 			wantUpdateDagIns: &entity.DagInstance{
 				Worker: "2",
 				Cmd: &entity.Command{
