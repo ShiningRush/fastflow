@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/shiningrush/fastflow"
 	mongoKeeper "github.com/shiningrush/fastflow/keeper/mongo"
+	"github.com/shiningrush/fastflow/pkg/actions/ahttp"
 	"github.com/shiningrush/fastflow/pkg/entity"
 	"github.com/shiningrush/fastflow/pkg/entity/run"
 	"github.com/shiningrush/fastflow/pkg/mod"
@@ -31,6 +33,7 @@ func main() {
 	// Register action
 	fastflow.RegisterAction([]run.Action{
 		&PrintAction{},
+		&ahttp.HTTP{},
 	})
 
 	// init keeper, it used to e
@@ -57,6 +60,7 @@ func main() {
 	}
 
 	go createDagAndInstance()
+	go startTestHTTPServer()
 
 	// start fastflow
 	if err := fastflow.Start(&fastflow.InitialOption{
@@ -76,11 +80,20 @@ func createDagAndInstance() {
 		BaseInfo: entity.BaseInfo{
 			ID: "test-dag",
 		},
-		Name: "test",
+		Name:   "test",
+		Status: entity.DagStatusNormal,
 		Tasks: []entity.Task{
 			{ID: "task1", ActionName: "PrintAction"},
 			{ID: "task2", ActionName: "PrintAction", DependOn: []string{"task1"}},
 			{ID: "task3", ActionName: "PrintAction", DependOn: []string{"task2"}},
+			{
+				ID:         "task4",
+				ActionName: ahttp.ActionHTTP,
+				Params: map[string]interface{}{
+					"url": "http://localhost:12345",
+				},
+				DependOn: []string{"task3"},
+			},
 		},
 	}
 	if err := ensureDagCreated(dag); err != nil {
@@ -113,4 +126,16 @@ func ensureDagCreated(dag *entity.Dag) error {
 		}
 	}
 	return nil
+}
+
+func startTestHTTPServer() {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("http server called")
+		_, _ = w.Write([]byte(`{"hello": "world"}`))
+	})
+
+	err := http.ListenAndServe(":12345", nil)
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
 }
