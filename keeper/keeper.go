@@ -13,10 +13,10 @@ var reg = regexp.MustCompile(`^.+-(\d+)$`)
 
 // CheckWorkerKey check if worker key is correct, the format must be "xxxxx-{{number}}"
 // number must in range 0~65535(sonyflake machine id is uint16)
-// if you give a custom generator, we will not check worker key format
+// if you give a custom generator, we will not check worker key format, and return -1
 func CheckWorkerKey(key string) (int, error) {
 	if store.IsCustomGenerator() {
-		return 0, nil
+		return -1, nil
 	}
 
 	ret := reg.FindStringSubmatch(key)
