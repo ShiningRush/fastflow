@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
 
@@ -8,9 +9,32 @@ import (
 )
 
 var (
-	generator *sonyflake.Sonyflake
-	mutex     sync.Mutex
+	generator           Generator
+	customGeneratorFlag bool
+	mutex               sync.Mutex
 )
+
+type Generator interface {
+	NextID() (uint64, error)
+}
+
+// InitCustomGenerator
+// if you give a custom generator, it will be used to generate id and not check worker number format anymore
+func InitCustomGenerator(cusGen Generator) {
+	// check custom generator is valid
+	_, err := cusGen.NextID()
+	if err != nil {
+		panic(fmt.Errorf("failed to generate custom generator id: %v", err))
+	}
+
+	generator = cusGen
+	customGeneratorFlag = true
+}
+
+// IsCustomGenerator returns whether the custom generator is initialized.
+func IsCustomGenerator() bool {
+	return customGeneratorFlag
+}
 
 // InitFlakeGenerator
 func InitFlakeGenerator(machineId uint16) {
