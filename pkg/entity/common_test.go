@@ -9,7 +9,7 @@ import (
 )
 
 func TestBaseInfo_Initial(t *testing.T) {
-	store.InitFlakeGenerator(100)
+	store.InitFlakeGenerator(65535)
 	bi := &BaseInfo{}
 	bi.Initial()
 	assert.NotEmpty(t, bi.ID)

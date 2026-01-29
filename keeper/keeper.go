@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 )
@@ -9,7 +10,7 @@ import (
 var reg = regexp.MustCompile(`^.+-(\d+)$`)
 
 // CheckWorkerKey check if worker key is correct, the format must be "xxxxx-{{number}}"
-// number must in range 0~255
+// number must in range 0~65535(sonyflake machine id is uint16)
 // if key is correct, worker number
 func CheckWorkerKey(key string) (int, error) {
 	ret := reg.FindStringSubmatch(key)
@@ -22,8 +23,8 @@ func CheckWorkerKey(key string) (int, error) {
 		return 0, fmt.Errorf("convert number failed: %w", err)
 	}
 
-	if number < 0 || number > 255 {
-		return 0, fmt.Errorf("worker number must in range 0~255")
+	if number < 0 || number > math.MaxUint16 {
+		return 0, fmt.Errorf("worker number must in range 0~%d", math.MaxUint16)
 	}
 
 	return number, nil
