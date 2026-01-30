@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "DAG Visualizer",
+  "version": "2.7.0",
+  "description": "专业的工作流可视化工具",
+  "author": "",
+
+  "action": {
+    "default_title": "打开 DAG Visualizer"
+  },
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "permissions": [
+    "storage"
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png", 
+    "128": "icon128.png"
+  }
+} 
