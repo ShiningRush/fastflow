@@ -19,6 +19,7 @@ type Task struct {
 	TimeoutSecs int                    `yaml:"timeoutSecs,omitempty" json:"timeoutSecs,omitempty"  bson:"timeoutSecs,omitempty"`
 	Params      map[string]interface{} `yaml:"params,omitempty" json:"params,omitempty"  bson:"params,omitempty"`
 	PreChecks   PreChecks              `yaml:"preCheck,omitempty" json:"preCheck,omitempty"  bson:"preCheck,omitempty"`
+	Position    TaskPosition           `yaml:"position,omitempty" json:"position,omitempty"  bson:"position,omitempty"`
 }
 
 // GetGraphID
@@ -39,6 +40,11 @@ func (t *Task) GetDepend() []string {
 // GetStatus
 func (t *Task) GetStatus() TaskInstanceStatus {
 	return ""
+}
+
+type TaskPosition struct {
+	X int64 `json:"x,omitempty" bson:"x,omitempty"`
+	Y int64 `json:"y,omitempty" bson:"y,omitempty"`
 }
 
 type PreChecks map[string]*Check
