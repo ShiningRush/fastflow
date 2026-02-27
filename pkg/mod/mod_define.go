@@ -1,6 +1,8 @@
 package mod
 
 import (
+	"errors"
+	"reflect"
 	"time"
 
 	"github.com/shiningrush/fastflow/pkg/entity"
@@ -8,13 +10,13 @@ import (
 )
 
 var (
-	ActionMap = map[string]run.Action{}
-
-	defExc       Executor
-	defStore     Store
-	defKeeper    Keeper
-	defParser    Parser
-	defCommander Commander
+	ActionMap           = map[string]run.Action{}
+	registeredActionMap = map[string]reflect.Value{}
+	defExc              Executor
+	defStore            Store
+	defKeeper           Keeper
+	defParser           Parser
+	defCommander        Commander
 )
 
 // Commander used to execute command
@@ -195,4 +197,45 @@ func SetParser(e Parser) {
 // GetParser
 func GetParser() Parser {
 	return defParser
+}
+
+func GetRegisteredAction(param string) run.Action {
+	action, ok := registeredActionMap[param]
+	if !ok {
+		return nil
+	}
+	return action.Interface().(run.Action)
+}
+
+func RegisterActionCap(intrs ...interface{}) error {
+	for _, intr := range intrs {
+		action := reflect.ValueOf(intr)
+		name, err := callName(action)
+		if err != nil {
+			return err
+		}
+		if _, ok := registeredActionMap[name]; !ok {
+			registeredActionMap[name] = action
+		}
+	}
+	return nil
+}
+
+func callName(action reflect.Value) (string, error) {
+	result := action.MethodByName("Name").Call(make([]reflect.Value, 0))
+	if len(result) == 0 {
+		return "", errors.New("Name function call err,check out if you set true return value")
+	}
+	return result[0].String(), nil
+}
+
+func Register(d *entity.Dag) *entity.Dag {
+	actions := make([]run.Action, len(d.Tasks))
+	for _, task := range d.Tasks {
+		actions = append(actions, GetRegisteredAction(task.ActionName))
+	}
+	for i := range actions {
+		ActionMap[actions[i].Name()] = actions[i]
+	}
+	return d
 }
