@@ -492,3 +492,21 @@ mod.GetKeeper().NewMutex("mutex key").Lock(ctx.Context(),
 其中:
 - `LockTTL` 表示你持有该锁的TTL，到期之后会自动释放，默认 `30s` 
 - `Reentrant` 用于需要实现可重入的分布式锁的场景，作为持有场景的标识，默认为空，表示该锁不可重入
+
+## 可视化编排工作流
+具体可以参考 [fastflow-ui](https://github.com/xnzone/fastflow-ui)
+
+1. 需要在Params里面定义一个字段 Output map[string]string `json:"output"`
+2. 通过下面的函数，在action运行结束时，把output设置一下
+	```go
+	// 输出参数，如果没传，就用Name保存整个请求的结构体
+	// key 是输出参数的key
+	// value 是从结构体中的字段 参考gjson的field格式 https://github.com/tidwall/gjson/blob/master/SYNTAX.md
+	func ShareSetOutput(ctx ExecuteContext, output map[string]string, bs []byte) error {
+		// 定义了返回，遍历按照key和value方式获取
+		for k, v := range output {
+			ctx.ShareData().Set(k, gjson.GetBytes(bs, v).String())
+		}
+		return nil
+	}
+	```
