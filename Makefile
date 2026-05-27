@@ -27,3 +27,9 @@ mock:
 	for file in `find . -type d \( -path ./.git -o -path ./.github \) -prune -o -name '*.go' -print | xargs grep --files-with-matches -e '//go:generate mockgen'`; do \
 		go generate $$file; \
 	done
+
+.PHONY: build
+GO     := GO111MODULE=on go
+GOBUILD := CGO_ENABLED=0 $(GO) build
+build:
+	GOARCH=amd64 GOOS=linux $(GOBUILD) -gcflags "all=-N -l" -o dist/fastflow examples/mysql/main.go

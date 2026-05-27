@@ -134,25 +134,24 @@ func isStrInArray(str string, arr []string) bool {
 type TaskInstance struct {
 	BaseInfo `bson:"inline"`
 	// Task's Id it should be unique in a dag instance
-	TaskID      string                 `json:"taskId,omitempty" bson:"taskId,omitempty"`
-	DagInsID    string                 `json:"dagInsId,omitempty" bson:"dagInsId,omitempty"`
-	Name        string                 `json:"name,omitempty" bson:"name,omitempty"`
-	DependOn    []string               `json:"dependOn,omitempty" bson:"dependOn,omitempty"`
-	ActionName  string                 `json:"actionName,omitempty" bson:"actionName,omitempty"`
-	TimeoutSecs int                    `json:"timeoutSecs" bson:"timeoutSecs"`
-	Params      map[string]interface{} `json:"params,omitempty" bson:"params,omitempty"`
-	Traces      []TraceInfo            `json:"traces,omitempty" bson:"traces,omitempty"`
-	Status      TaskInstanceStatus     `json:"status,omitempty" bson:"status,omitempty"`
-	Reason      string                 `json:"reason,omitempty" bson:"reason,omitempty"`
-	PreChecks   PreChecks              `json:"preChecks,omitempty"  bson:"preChecks,omitempty"`
-
+	TaskID      string                 `json:"taskId,omitempty" bson:"taskId,omitempty" gorm:"type:VARCHAR(256);not null"`
+	DagInsID    string                 `json:"dagInsId,omitempty" bson:"dagInsId,omitempty" gorm:"type:VARCHAR(256);not null;index"`
+	Name        string                 `json:"name,omitempty" bson:"name,omitempty" gorm:"-"`
+	DependOn    []string               `json:"dependOn,omitempty" bson:"dependOn,omitempty" gorm:"type:JSON;serializer:json"`
+	ActionName  string                 `json:"actionName,omitempty" bson:"actionName,omitempty" gorm:"type:VARCHAR(256);not null"`
+	TimeoutSecs int                    `json:"timeoutSecs" bson:"timeoutSecs" gorm:"type:bigint(20) unsigned"`
+	Params      map[string]interface{} `json:"params,omitempty" bson:"params,omitempty" gorm:"type:JSON;serializer:json"`
+	Traces      []TraceInfo            `json:"traces,omitempty" bson:"traces,omitempty" gorm:"type:JSON;serializer:json"`
+	Status      TaskInstanceStatus     `json:"status,omitempty" bson:"status,omitempty" gorm:"type:enum('init', 'canceled', 'running', 'ending', 'failed', 'retrying', 'success', 'blocked', 'skipped');index;not null;"`
+	Reason      string                 `json:"reason,omitempty" bson:"reason,omitempty" gorm:"type:TEXT"`
+	PreChecks   PreChecks              `json:"preChecks,omitempty"  bson:"preChecks,omitempty" gorm:"type:JSON;serializer:json"`
 	// used to save changes
-	Patch              func(*TaskInstance) error `json:"-" bson:"-"`
-	Context            run.ExecuteContext        `json:"-" bson:"-"`
-	RelatedDagInstance *DagInstance              `json:"-" bson:"-"`
+	Patch              func(*TaskInstance) error `json:"-" bson:"-" gorm:"-"`
+	Context            run.ExecuteContext        `json:"-" bson:"-" gorm:"-"`
+	RelatedDagInstance *DagInstance              `json:"-" bson:"-" gorm:"-"`
 
 	// it used to buffer traces, and persist when status changed
-	bufTraces []TraceInfo
+	bufTraces []TraceInfo `gorm:"-"`
 }
 
 // TraceInfo

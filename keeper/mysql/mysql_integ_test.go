@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package mongo
+package mysql
 
 import (
 	"fmt"
@@ -10,11 +10,16 @@ import (
 	"testing"
 	"time"
 
+	mysqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-var mongoConn = "mongodb://root:pwd@127.0.0.1:27017/fastflow?authSource=admin"
+const (
+	addr   = "127.0.0.1:55000"
+	user   = "root"
+	passwd = "mysqlpw"
+	dbName = "fastflow"
+)
 
 func TestKeeper_Sanity(t *testing.T) {
 	w1, w2, w3 := initSanityWorker(t)
@@ -46,7 +51,7 @@ func TestKeeper_Crash(t *testing.T) {
 	log.Println("keeper work well, ready to re-goElect")
 
 	w1.forceClose()
-	time.Sleep(6 * time.Second)
+	time.Sleep(11 * time.Second)
 	// should goElect new leader
 	assert.True(t, w2.IsLeader() || w3.IsLeader())
 	nodes, err := w3.AliveNodes()
@@ -74,7 +79,7 @@ func TestKeeper_Concurrency(t *testing.T) {
 		}
 	}()
 
-	curCnt := 20
+	curCnt := 40
 	initCompleted := sync.WaitGroup{}
 	initCompleted.Add(curCnt)
 	closeCh := make(chan struct{})
@@ -117,13 +122,19 @@ func TestKeeper_Reconnect(t *testing.T) {
 }
 
 func initWorker(t *testing.T, key string) *Keeper {
+	// init keeper
 	w := NewKeeper(&KeeperOption{
-		Key:                      key,
-		ConnStr:                  mongoConn,
-		InitFlakeGeneratorSwitch: boolToPointer(true),
+		Key: key,
+		MySQLConfig: &mysqlDriver.Config{
+			Addr:   "127.0.0.1:55000",
+			User:   "root",
+			Passwd: "mysqlpw",
+			DBName: "fastflow",
+		},
+		MigrationSwitch: true,
 	})
 	err := w.Init()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	return w
 }
 

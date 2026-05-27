@@ -182,6 +182,8 @@ func (p *DefParser) InitialDagIns(dagIns *entity.DagInstance) {
 			tree.DagIns.Block(fmt.Sprintf("initial blocked because task ins[%s]", taskInsId))
 		case TreeStatusFailed:
 			tree.DagIns.Fail(fmt.Sprintf("initial failed because task ins[%s]", taskInsId))
+		case TreeStatusCanceled:
+			tree.DagIns.Cancel(fmt.Sprintf("initial canceled because task ins[%s]", taskInsId))
 		default:
 			log.Warn("initial a dag which has no executable tasks",
 				utils.LogKeyDagInsID, dagIns.ID)
@@ -228,7 +230,9 @@ func (p *DefParser) executeNext(taskIns *entity.TaskInstance) error {
 		case TreeStatusRunning:
 			return nil
 		case TreeStatusFailed:
-			tree.DagIns.Fail(fmt.Sprintf("task[%s] failed or canceled", taskId))
+			tree.DagIns.Fail(fmt.Sprintf("task[%s] failed", taskId))
+		case TreeStatusCanceled:
+			tree.DagIns.Cancel(fmt.Sprintf("task[%s] canceled", taskId))
 		case TreeStatusBlocked:
 			tree.DagIns.Block(fmt.Sprintf("task[%s] blocked", taskId))
 		case TreeStatusSuccess:
@@ -294,7 +298,7 @@ func (p *DefParser) cancelChildTasks(tree *TaskTree, ids []string) error {
 	if !tree.DagIns.CanModifyStatus() {
 		return nil
 	}
-	tree.DagIns.Fail(fmt.Sprintf("task instance[%s] canceled", strings.Join(ids, ",")))
+	tree.DagIns.Cancel(fmt.Sprintf("task instance[%s] canceled", strings.Join(ids, ",")))
 	return GetStore().PatchDagIns(tree.DagIns)
 }
 
@@ -441,6 +445,11 @@ func (p *DefParser) parseCmd(dagIns *entity.DagInstance) (err error) {
 			if err != nil {
 				return
 			}
+		case entity.CommandNameJumpTo:
+			err = p.parseJumpToCmd(dagIns)
+			if err != nil {
+				return
+			}
 		default:
 			log.Errorf("command[%s] is invalid, ignore it", dagIns.Cmd.Name)
 		}
@@ -509,6 +518,107 @@ func (p *DefParser) Close() {
 		close(p.workerQueue[i])
 	}
 	p.workerWg.Wait()
+}
+
+// parseJumpToCmd handles the jump_to command:
+// 1. Skip all failed tasks so they don't block execution
+// 2. Skip all init tasks that are NOT the target or downstream of target
+// 3. Reset the target task and all its downstream tasks (success/skipped → init)
+// 4. Re-initialize the DAG instance to start execution from the target
+func (p *DefParser) parseJumpToCmd(dagIns *entity.DagInstance) error {
+	targetTaskInsIDs := dagIns.Cmd.TargetTaskInsIDs
+	if len(targetTaskInsIDs) == 0 {
+		return fmt.Errorf("jump_to command requires at least one target task")
+	}
+
+	allTasks, err := GetStore().ListTaskInstance(&ListTaskInstanceInput{
+		DagInsID: dagIns.ID,
+	})
+	if err != nil {
+		return err
+	}
+
+	root, err := BuildRootNode(MapTaskInsToGetter(allTasks))
+	if err != nil {
+		return err
+	}
+
+	downstreamIDs := collectDownstreamIDs(root, targetTaskInsIDs)
+	needsResetIDs := make(map[string]struct{})
+	for _, id := range targetTaskInsIDs {
+		needsResetIDs[id] = struct{}{}
+	}
+	for _, id := range downstreamIDs {
+		needsResetIDs[id] = struct{}{}
+	}
+
+	taskMap := getTasksMap(allTasks)
+	hasAnyTaskChanged := false
+
+	for id, t := range taskMap {
+		if _, ok := needsResetIDs[id]; ok {
+			if t.Status == entity.TaskInstanceStatusSuccess ||
+				t.Status == entity.TaskInstanceStatusSkipped {
+				t.Status = entity.TaskInstanceStatusInit
+				t.Reason = ""
+				if err := GetStore().UpdateTaskIns(t); err != nil {
+					return err
+				}
+				hasAnyTaskChanged = true
+			}
+		} else {
+			if t.Status == entity.TaskInstanceStatusFailed ||
+				t.Status == entity.TaskInstanceStatusInit {
+				t.Status = entity.TaskInstanceStatusSkipped
+				t.Reason = ""
+				if err := GetStore().UpdateTaskIns(t); err != nil {
+					return err
+				}
+				hasAnyTaskChanged = true
+			}
+		}
+	}
+
+	dagIns.Run()
+	if hasAnyTaskChanged {
+		p.InitialDagIns(dagIns)
+	}
+	return nil
+}
+
+// collectDownstreamIDs finds all task IDs that are downstream of the given target IDs
+func collectDownstreamIDs(root *TaskNode, targetIDs []string) []string {
+	targetSet := make(map[string]struct{})
+	for _, id := range targetIDs {
+		targetSet[id] = struct{}{}
+	}
+
+	var downstreamIDs []string
+	visited := make(map[string]struct{})
+	var walk func(node *TaskNode, foundTarget bool)
+	walk = func(node *TaskNode, foundTarget bool) {
+		if node.TaskInsID != virtualTaskRootID {
+			if _, already := visited[node.TaskInsID]; already {
+				return
+			}
+			visited[node.TaskInsID] = struct{}{}
+
+			if foundTarget && node.TaskInsID != virtualTaskRootID {
+				downstreamIDs = append(downstreamIDs, node.TaskInsID)
+			}
+		}
+
+		isTarget := false
+		if _, ok := targetSet[node.TaskInsID]; ok {
+			isTarget = true
+		}
+
+		for _, child := range node.children {
+			walk(child, foundTarget || isTarget)
+		}
+	}
+	walk(root, false)
+	return downstreamIDs
 }
 
 func (p *DefParser) handleErr(err error) {
