@@ -139,6 +139,21 @@ func (c *DefCommander) ContinueTask(taskInsIds []string, ops ...CommandOptSetter
 	}, opt)
 }
 
+// JumpToTask jump to a specific task step: skip all failed tasks and reset target+downstream to init
+func (c *DefCommander) JumpToTask(taskInsIds []string, ops ...CommandOptSetter) error {
+	opt := initOption(ops)
+	return executeCommand(taskInsIds, func(dagIns *entity.DagInstance, isWorkerAlive bool) error {
+		if !isWorkerAlive {
+			aliveNodes, err := GetKeeper().AliveNodes()
+			if err != nil {
+				return err
+			}
+			dagIns.Worker = aliveNodes[rand.Intn(len(aliveNodes))]
+		}
+		return dagIns.JumpTo(taskInsIds)
+	}, opt)
+}
+
 func (c *DefCommander) autoLoopDagTasks(
 	dagInsId string,
 	status []entity.TaskInstanceStatus,

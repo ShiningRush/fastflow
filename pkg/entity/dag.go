@@ -200,6 +200,7 @@ type DagInstanceLifecycleHook struct {
 	BeforeBlock    DagInstanceHookFunc
 	BeforeRetry    DagInstanceHookFunc
 	BeforeContinue DagInstanceHookFunc
+	BeforeJumpTo   DagInstanceHookFunc
 }
 
 // VarsGetter
@@ -265,6 +266,11 @@ func (dagIns *DagInstance) Continue(taskInsIds []string) error {
 	return dagIns.genCmd(taskInsIds, CommandNameContinue)
 }
 
+// JumpTo a specific task, skip failed tasks and reset target+downstream to init
+func (dagIns *DagInstance) JumpTo(taskInsIds []string) error {
+	return dagIns.genCmd(taskInsIds, CommandNameJumpTo)
+}
+
 func (dagIns *DagInstance) genCmd(taskInsIds []string, cmdName CommandName) error {
 	if dagIns.Cmd != nil {
 		return fmt.Errorf("dag instance have a incomplete command")
@@ -275,6 +281,8 @@ func (dagIns *DagInstance) genCmd(taskInsIds []string, cmdName CommandName) erro
 		dagIns.executeHook(HookDagInstance.BeforeRetry)
 	case CommandNameContinue:
 		dagIns.executeHook(HookDagInstance.BeforeContinue)
+	case CommandNameJumpTo:
+		dagIns.executeHook(HookDagInstance.BeforeJumpTo)
 	}
 
 	dagIns.Cmd = &Command{
@@ -320,6 +328,7 @@ const (
 	CommandNameRetry    = "retry"
 	CommandNameCancel   = "cancel"
 	CommandNameContinue = "continue"
+	CommandNameJumpTo   = "jump_to"
 )
 
 // DagInstanceStatus

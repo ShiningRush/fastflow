@@ -333,6 +333,87 @@ func TestDefCommander_CancelTask(t *testing.T) {
 
 }
 
+func TestDefCommander_JumpToTask(t *testing.T) {
+	tests := []struct {
+		caseDesc             string
+		giveTaskInsID        []string
+		giveIsAlive          bool
+		giveAliveNodes       []string
+		giveAliveNodesErr    error
+		wantErr              error
+		wantUpdateDagIns     *entity.DagInstance
+		wantAliveNodesCalled bool
+	}{
+		{
+			caseDesc:      "normal",
+			giveTaskInsID: []string{"test task"},
+			giveIsAlive:   true,
+			wantUpdateDagIns: &entity.DagInstance{
+				Cmd: &entity.Command{
+					Name:             entity.CommandNameJumpTo,
+					TargetTaskInsIDs: []string{"test task"},
+				},
+			},
+		},
+		{
+			caseDesc:       "unhealthy worker",
+			giveTaskInsID:  []string{"test task"},
+			giveIsAlive:    false,
+			giveAliveNodes: []string{"2"},
+			wantUpdateDagIns: &entity.DagInstance{
+				Worker: "2",
+				Cmd: &entity.Command{
+					Name:             entity.CommandNameJumpTo,
+					TargetTaskInsIDs: []string{"test task"},
+				},
+			},
+			wantAliveNodesCalled: true,
+		},
+		{
+			caseDesc:             "get alive nodes failed",
+			giveTaskInsID:        []string{"test task"},
+			giveIsAlive:          false,
+			giveAliveNodes:       []string{"1", "2"},
+			giveAliveNodesErr:    fmt.Errorf("get failed"),
+			wantAliveNodesCalled: true,
+			wantErr:              fmt.Errorf("get failed"),
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.caseDesc, func(t *testing.T) {
+			mStore := &MockStore{}
+			mStore.On("ListTaskInstance", mock.Anything).Run(func(args mock.Arguments) {
+				assert.Equal(t, &ListTaskInstanceInput{
+					IDs: tc.giveTaskInsID,
+				}, args.Get(0))
+			}).Return([]*entity.TaskInstance{
+				{},
+			}, nil)
+			mStore.On("GetDagInstance", mock.Anything).Return(&entity.DagInstance{
+				Status: entity.DagInstanceStatusFailed,
+			}, nil)
+			mStore.On("PatchDagIns", mock.Anything).Run(func(args mock.Arguments) {
+				assert.Equal(t, tc.wantUpdateDagIns, args.Get(0))
+			}).Return(nil)
+			SetStore(mStore)
+
+			isCalled := false
+			mKeep := &MockKeeper{}
+			mKeep.On("IsAlive", mock.Anything).Return(tc.giveIsAlive, nil)
+			mKeep.On("AliveNodes").Run(func(args mock.Arguments) {
+				isCalled = true
+			}).Return(tc.giveAliveNodes, tc.giveAliveNodesErr)
+			SetKeeper(mKeep)
+
+			c := &DefCommander{}
+			err := c.JumpToTask(tc.giveTaskInsID)
+			assert.Equal(t, tc.wantErr, err)
+			assert.Equal(t, tc.wantAliveNodesCalled, isCalled)
+		})
+	}
+}
+
 func TestDefCommander_initOption(t *testing.T) {
 	tests := []struct {
 		caseDesc   string
